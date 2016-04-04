@@ -38,7 +38,7 @@ colnames(store)<-colnames(k)
 #############The two functions that are applied#############################################################
 ############################################################################################################
 #Function 2 which is called by function 1
-#This function takes the matrix of different combinaations and writes it to a store matrix
+#This function takes the matrix of different combinations and writes it to a store matrix
 
 func2<-function(x){
 store[c(x[1]), c(x[2])]<<-store[c(x[1]), c(x[2])]+1
