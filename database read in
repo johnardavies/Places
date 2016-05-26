@@ -17,6 +17,8 @@ dbListTables(mydb)
 #Reads in the table as a data frame, calls it p1
 p1 = dbGetQuery(mydb,'select * from Londontweet020416test' )
 
+#If used the code below reads in the first 1000 rows of the table
+# p1 = dbGetQuery(mydb,'select * from Londontweet020416test LIMIT 1, 1000')
 p1<-unique(p1)
 
 twts<-p1
