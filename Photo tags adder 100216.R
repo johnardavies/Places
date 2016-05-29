@@ -98,14 +98,22 @@ daysactive<-function(x){max(x) - min(x)}
 
 spdf@data$V4<-as.timeDate(spdf@data$V4, zone = "GMT") #Converts the date taken variable to a time date object
 
+#Creates a year variable
+spdf@data$yr<-format(spdf@data$V4,"%Y")
+
+#Creates an hour variable
+spdf@data$hr<-format(spdf@data$V4,"%H")
+
+#Creates a months variable
+spdf@data$months<-months(spdf@data$V4)
 
 #Calculates the number of days between people's oldest and newest photos
-s<-aggregate(spdf@data$V4, by=list(spdf@data$ï..V1),FUN=daysactive)
+s<-aggregate(spdf@data$V4, by=list(spdf@data$Ã¯..V1),FUN=daysactive)
 
 s$tourist<-ifelse(s[, c("GMT:x")]<7*3 ,1,0)
 
 #Merges the tourist flag with the photographs data
 
-spdf@data<-merge(spdf@data , s , by.x="ï..V1" , by.y="Group.1" , all.x=TRUE)
+spdf@data<-merge(spdf@data , s , by.x="Ã¯..V1" , by.y="Group.1" , all.x=TRUE)
 
 #The tourist variable is spdf@data$tourist###########################################################
