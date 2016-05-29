@@ -101,6 +101,14 @@ spdf@data$V4<-as.timeDate(spdf@data$V4, zone = "GMT") #Converts the date taken v
 #Creates a year variable
 spdf@data$yr<-format(spdf@data$V4,"%Y")
 
+#vector of years
+yrs<-c("1997",   "1998",   "1999",   "2000",  "2001"  , "2002"  , "2003"  , "2004"  , "2005"  , "2006"  , "2007",   "2008 ",  "2009",  
+       "2010",   "2011" ,  "2012")
+       
+#Recodes the data$yr variable so that only years in the yrs vector are coded, otherwise they are set to NA
+
+spdf@data$yr<-ifelse(spdf@data$yr %in% yrs,spdf@data$yr , NA )
+
 #Creates an hour variable
 spdf@data$hr<-format(spdf@data$V4,"%H")
 
