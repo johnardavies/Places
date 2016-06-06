@@ -1,0 +1,40 @@
+library('ggplot2')
+library('scales')
+
+
+visno<-read.csv("filepath to visit england visitor numbers.csv", header=T)
+
+
+#Variable names
+# "Attraction"      "Region"          "County"          "District"        "CRU"             "Category"        "Category.Detail" "X2010.visitors" 
+# "X2011.visitors"  "X2012.visitors"  "X2013.visitors"  "X2014.visitors"  "Estimate."       "X..13.14"        "Charge"          "Charge.band"    
+# "Size"   
+
+
+#plots 2012 visitors against 2014 visitors
+ggplot(visno, aes(X2012.visitors,X2014.visitors )) + geom_point()
+
+
+#split of visitor by charge
+#aes stands for the aesthetic function
+#Creates a stem and leaf plot
+p <- ggplot(visno, aes(Charge, X2014.visitors))
+p + geom_boxplot()+scale_y_continuous(name= "Visitor numbers", labels = comma)
+
+#split of visitor by Charge.band
+visbychag <- ggplot(visno, aes(Charge.band, as.numeric(X2014.visitors)))
+visbychag + geom_boxplot()+scale_y_continuous(name= "Visitor numbers", labels = comma)
+
+#split of visitor by region
+visbyreg <- ggplot(visno, aes(Region, as.numeric(X2014.visitors)))
+visbyreg + geom_boxplot()+scale_y_continuous(name= "Visitor numbers", labels = comma)
+
+
+#Histogram of the number of visitors per attraction      
+qplot(as.numeric(visno$X2014.visitors),
+      geom="histogram",
+      binwidth = 10000,  
+      main = "Number of visitors by attraction", 
+      xlab = "Number of visitors",
+      fill=I("blue")
+)+scale_x_continuous(labels = comma)
