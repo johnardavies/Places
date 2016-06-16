@@ -42,6 +42,7 @@ def write(x):
 ######### Function which calls the Culture 24 api and which downloads the pages#####################################
 def pager(y,x):
      payload = {'key': INSERT, 'limit':100, 'offset': x}
+     #offset is where to start in the number of venues, limit is how many are returned on each go
      print payload
      time.sleep(3)
      rs=requests.get(y, params=payload)
@@ -53,8 +54,8 @@ def pager(y,x):
      pager('http://www.culture24.org.uk/api/rest/v1/venues/',a)
 
 
-#offset is where to start in the number of venues
-#50 is the number of venues to be returned in each go
+
+
 #The https request that is used
 mu_url2='http://www.culture24.org.uk/api/rest/v1/venues/'
 
