@@ -1,1 +1,80 @@
+import json
+import ssl
+import sqlite3
+import pprint
+import requests
+import time
+import re
+import csv
 
+# This code calls the culture24 api and works its way through the different venues obtaining information.
+# This data is then written to an sqlite database 
+
+#######Function which parses the json and writes it to an sqlite database####################################################
+def write(x):
+  addin=[ ]
+  for units in x['result']['items']:
+  #  for units in elem['items']:
+     #pp = pprint.PrettyPrinter(indent=4)
+     #pp.pprint(units) #prints the json tothe screen
+     names=units['name'].encode('utf-8')
+     collections=units['collections']
+     collections=", ".join(repr(e) for e in collections)#unpacks the list so that it can be fed into the database
+     contentTag=units['contentTag']
+     contentTag=", ".join(repr(e) for e in contentTag)
+     legalStatus=units['legalStatus'].encode('utf-8')
+     lon=units['longitude'].encode('utf-8')
+     lat=units['latitude'].encode('utf-8')
+     country=units['addressCountry'].encode('utf-8')
+     county=units['addressCounty'].encode('utf-8')
+     post=units['addressPostcode'].encode('utf-8')
+     charges=units['charges'].encode('utf-8')
+     status=units['legalStatus'].encode('utf-8')
+     ids=units['uniqueID'].encode('utf-8')
+     moddate=units['modificationDate'].encode('utf-8')
+     oh=units['openingHours'].encode('utf-8')
+     addin.append((names,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh)) #a tuple of the values is inserted into the list
+ #inserts all the rows collected into a database
+  print len(addin)
+  c.executemany('''INSERT INTO culture24venuesv4(names,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh) values(?,?,?,?,?,?,?,?,?,?,?,?,?)''',addin)
+  conn.commit()
+
+ 
+######### Function which calls the Culture 24 api and which downloads the pages#####################################
+def pager(y,x):
+     payload = {'key': INSERT, 'limit':100, 'offset': x}
+     print payload
+     time.sleep(3)
+     rs=requests.get(y, params=payload)
+     b=rs.url   
+     data=rs.json()
+     write(data)
+     a=re.findall(r'offset=(\d+)', str(b))[0] #takes the offset as the new starting point
+     a=int(a)+payload['limit']+1
+     pager('http://www.culture24.org.uk/api/rest/v1/venues/',a)
+
+
+#offset is where to start in the number of venues
+#50 is the number of venues to be returned in each go
+#The https request that is used
+mu_url2='http://www.culture24.org.uk/api/rest/v1/venues/'
+
+#Sets up the database
+conn = sqlite3.connect('C:filepathculture25.db')
+conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore') #T
+c=conn.cursor()
+#Creates the table that the venues data will be stored in
+c.execute('''CREATE TABLE culture24venuesv4
+         ( names text,collections text, contentTag text, legalStatus text,lon real, lat real, country text,county text,charges text, status text, ids real, moddate text,oh text)''')
+
+################################################################################################################
+##########Calls pager function to start the program #############################################################
+pager(mu_url2, 0)
+
+conn.close()
+
+# Code that would write data to a csv if used
+#  with open('filepathcult24.csv', "a",) as csvFile: #Writes the data to a csv file
+#  writer=csv.writer(csvFile, lineterminator='\n')
+#  writer.writerow((str(names),str(collections),str(contentTag),str(legalStatus),str(lon),str(lat),str(country),str(county),str(charges),str(status),str(ids), str(moddate),str(oh),'1'))
+# csvFile.close()
