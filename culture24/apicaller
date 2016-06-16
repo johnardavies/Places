@@ -14,7 +14,6 @@ import csv
 def write(x):
   addin=[ ]
   for units in x['result']['items']:
-  #  for units in elem['items']:
      #pp = pprint.PrettyPrinter(indent=4)
      #pp.pprint(units) #prints the json tothe screen
      names=units['name'].encode('utf-8')
