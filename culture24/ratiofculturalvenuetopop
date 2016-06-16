@@ -1,0 +1,133 @@
+library("RODBC")
+library('sqldf')
+library('rgdal')
+
+#This code calculates the ratio of a NUTS3 area's share of cultural assets 
+#to its share of population and then plots the results on a map
+
+#1. Extracts the culture24 data from the datbase
+
+#filepath to the database
+dbfile<-"\\culture25.db"
+
+# Instantiate the dbDriver to a convenient object
+sqlite = dbDriver("SQLite");
+
+# Assign the connection string to a connection object
+mydb = dbConnect(sqlite, dbfile);
+
+#Lists the tables associated with the database
+dbListTables(mydb)
+
+#Reads in the table as a data frame, calls it p1
+
+p1 = dbGetQuery(mydb,'select * from culture24venuesv4')
+
+#2. Creates a spatial points vector from the culture24 data
+#Creates the long lat vector
+d<-cbind(p1$lon, p1$lat)
+
+points = SpatialPoints(d)
+
+##sets up the projection for the photos as the same
+proj4string(points) <- CRS("+proj=longlat +datum=WGS84")
+
+
+#Binds the data to the points to create a spatial points data frame
+spdf = SpatialPointsDataFrame(points, p1)
+
+
+######################################################################################
+#3. Reads in the NUTS shape files
+
+states<-readOGR("Mapping\\shape\\data","NUTS_RG_03M_2006")
+
+#Selects only the NUTS3 geographies
+states2<-subset(states, states@data$STAT_LEVL_=='3')
+
+#Selects the UK by matching NUTS codes that start with UK
+UK<-subset(states2, grepl("^UK", states2@data$NUTS_ID)==TRUE)
+
+#Sets the projection as the same 
+UK<-spTransform(UK, CRS("+proj=longlat +datum=WGS84"))
+
+#######################################################################################
+#Selects only points that fall within the UK
+inuk<-over(spdf,UK, returnlist=TRUE)
+
+#Creates a variable that says whether the area is in the UK, if it is returns the NUTSID
+spdf@data$NUTS_ID<-ifelse(is.na(inuk$NUTS_ID)==TRUE ,'NOTUK', as.character(inuk$NUTS_ID))
+
+#subsets the data so that we only have the venues located in the UK
+spdf<-subset(spdf, spdf@data$NUTS_ID!='NOTUK')
+
+#Creates a share of the activities by NUTS2 area
+
+nutss<-table(spdf@data$NUTS_ID)
+
+nutts<-as.data.frame(nutss)
+
+nutts$per<-nutts$Freq/sum(nutts$Freq) #Calculates the percentage share of each NUTS area
+
+#Merges in the name information with the NUTS data
+pop<-read.csv('\\nuts3coding.csv', header=T)
+
+pop$nutid<-as.character(pop$nutid)
+
+nutts<-merge(nutts, pop, by.x="Var1" , by.y="nutid")
+
+#####################################################################################
+#4. Reads in population data
+aps14<-read.csv('D:\\APSP_JD14_Nestav2.csv', header=T)
+
+#Calculates population by NUTS3 coding
+nationalsplitUK14<-xtabs(PWTA14 ~ NUTS3, data=aps14)
+
+#Converts the table to a data frame
+nationalsplitUK14<-as.data.frame(nationalsplitUK14)
+
+#Calculates NUTS3 share of wards
+nationalsplitUK14$prop<-nationalsplitUK14$Freq/sum(nationalsplitUK14$Freq)
+
+#Merges the pop data with the cultural asset data, divides one by the other
+nuts3popratio<-merge(nutts,nationalsplitUK14 , by.x="Var1" , by.y="NUTS3")
+
+#Calculates the cultural venue share to population share
+nuts3popratio$rat<-(nuts3popratio$per/nuts3popratio$prop)
+
+#Orders the dataframe by the ratio of the asset data to the population data
+#put a minus sigb in front of the variable to sort it in another direction
+out<-nuts3popratio[with(nuts3popratio, order(rat)), ]
+
+write.csv(out,'nuts3coding.csv')
+
+#5. Plots the results on a map
+
+library(classInt)
+library(RColorBrewer)
+library(maptools)
+
+#Creates \a new variable labelled by the category name, with the variable values equal to the location quotient of the corresponding area
+UK@data[,c('rat')]<-out[match(UK@data[,c("NUTS_ID")],out[ ,c("Var1")]),c('rat')] 
+
+#Codes the NAs in the data as 0s
+UK@data[is.na(UK@data)]<- 0
+
+#Selects the colour palate
+my_colours<-brewer.pal(6, "PuBu") 
+
+breaks<-classIntervals(as.numeric(UK@data[,c("rat")]), n=6, style="fixed", fixedBreaks=c(0,0.5,1,1.5,2,2.5,7) , intervalClosure='left', unique=FALSE)
+#interval closure means that intervals are closed on the right
+# n is the number of categories in the scale
+#Where there is 1 entry per break the breaks2 coding is used, otherwise it reverts to a custom scale
+#style="fixed" uses the fixedBreaks vector
+
+#Plots the data
+plot(UK, col=my_colours[findInterval(UK@data[,c('rat')], breaks$brks, all.inside=FALSE)],axes=FALSE, border=FALSE)
+
+#Plots the chart legend
+plot<-legend("left", legend=leglabs(round(breaks$brks,digits=2), between=" to <"), fill=my_colours, bty="n", cex=0.7, title ="Ratio")
+#bty= n means no box around legend border=FALSE means that there is no box
+
+#Adds a title that is the group category
+title(main=as.character('ratio of cultural venue share to population share'), cex.lab=0.07)
