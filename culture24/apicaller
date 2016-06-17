@@ -18,9 +18,11 @@ def write(x):
      #pp.pprint(units) #prints the json tothe screen
      names=units['name'].encode('utf-8')
      collections=units['collections']
-     collections=", ".join(repr(e) for e in collections)#unpacks the list so that it can be fed into the database
+     collections=", ".join(repr(str(e)) for e in collections)#unpacks the list so that it can be fed into the database
      contentTag=units['contentTag']
-     contentTag=", ".join(repr(e) for e in contentTag)
+     contentTag=", ".join(repr(str(e)) for e in contentTag)
+     types=units['type']
+     types=", ".join(repr(str(e)) for e in types)
      legalStatus=units['legalStatus'].encode('utf-8')
      lon=units['longitude'].encode('utf-8')
      lat=units['latitude'].encode('utf-8')
@@ -32,10 +34,10 @@ def write(x):
      ids=units['uniqueID'].encode('utf-8')
      moddate=units['modificationDate'].encode('utf-8')
      oh=units['openingHours'].encode('utf-8')
-     addin.append((names,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh)) #a tuple of the values is inserted into the list
+     addin.append((names,types,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh)) #a tuple of the values is inserted into the list
  #inserts all the rows collected into a database
   print len(addin)
-  c.executemany('''INSERT INTO culture24venuesv4(names,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh) values(?,?,?,?,?,?,?,?,?,?,?,?,?)''',addin)
+  c.executemany('''INSERT INTO culture24venuesv4(names,types,collections, contentTag,legalStatus,lon,lat,country,county,charges,status,ids, moddate,oh) values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',addin)
   conn.commit()
 
  
@@ -65,7 +67,7 @@ conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore') #T
 c=conn.cursor()
 #Creates the table that the venues data will be stored in
 c.execute('''CREATE TABLE culture24venuesv4
-         ( names text,collections text, contentTag text, legalStatus text,lon real, lat real, country text,county text,charges text, status text, ids real, moddate text,oh text)''')
+         ( names text,types text, collections text, contentTag text, legalStatus text,lon real, lat real, country text,county text,charges text, status text, ids real, moddate text,oh text)''')
 
 ################################################################################################################
 ##########Calls pager function to start the program #############################################################
