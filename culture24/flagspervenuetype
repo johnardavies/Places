@@ -1,0 +1,22 @@
+
+
+mugalibs<-"\\<museum\\>|\\<gallery\\>|\\<library\\>"
+libs<-"\\<library\\>"
+gal<-"\\<gallery\\>"
+mu<-"\\<museum\\>"
+
+#sets the types information to lower case
+spdf@data$types<-tolower(spdf@data$types)
+
+
+#Museums
+spdf@data$mu<-ifelse(grepl(mu, spdf@data$types),1,0)
+
+#Libraries
+spdf@data$lib<-ifelse(grepl(libs,spdf@data$types),1,0)
+
+#Galleries
+spdf@data$gal<-ifelse(grepl(gal,spdf@data$types),1,0)
+
+#Allthree
+spdf@data$mugalib<-ifelse(grepl(mugalibs,spdf@data$types),1,0)
