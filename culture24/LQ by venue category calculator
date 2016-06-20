@@ -1,0 +1,54 @@
+#Caculates lqs for multiple different kinds of groups
+
+#These are flags that we have for each groups in spdf@data
+cats<-c("mugalib", "mu", "lib", "gal") #mu mueseums, lib libraries, gal galleries, mugalib is all three
+
+#########################################################################################################
+#1. Creates the base table that has how many the number of different kinds of venue by NUTS3. 
+#Var1 is the NUTS3ID and Freq is the the number of venues in the lic
+
+#How many venues by NUTS3
+g<-as.data.frame(table(spdf@data$NUTS_ID))
+
+#How many venues by the different kinds of venues
+ggdata <-aggregate(spdf@data[,c("mugalib", "mu", "lib", "gal")], by=list(spdf@data$NUTS_ID),FUN=sum) 
+
+#merges the two
+tabs<-merge(g,ggdata, by.x='Var1', by.y='Group.1', all.x=TRUE)
+
+#2. Population data calculation
+#Readsin the population data
+aps14<-read.csv('D:\\APSP_JD14_Nestav2.csv', header=T)
+
+#Calculates population by NUTS3 coding
+#nationalsplitUK14<-xtabs(PWTA14 ~ TTWA07, data=aps14)
+nationalsplitUK14<-xtabs(PWTA14 ~ NUTS3, data=aps14)
+
+#Converts the table to a data frame
+nationalsplitUK14<-as.data.frame(nationalsplitUK14)
+
+#Merges with the population data, so we have the information to calculate the ratios from
+tabs<-merge(tabs,nationalsplitUK14, by.x="Var1" , by.y="NUTS3")
+#################################################################################################
+
+#3.Calculates the lq share by wards
+lq<-function(x){x/sum(x)/(tabs$Freq.y/sum(tabs$Freq.y))}
+
+
+#Applies the lq function to the data, misses the first column as it has the NUTSids
+outlq<-cbind(as.character(tabs$Var1), apply(tabs[,c("Freq.x", "mugalib", "mu", "lib" ,"gal", "Freq.y")],2, lq))
+
+#Recodes the first column name
+colnames(outlq)[1]<-c("Var1")
+
+#Merges in the name information with the NUTS data
+pop<-read.csv('nuts3coding.csv', header=T)
+pop$nutid<-as.character(pop$nutid)
+
+
+outlq<-merge(outlq, pop, by.x="Var1" , by.y="nutid")
+
+
+#4.Calculates the Gini coefficients for each category
+library("ineq")
+apply(outlq[,c("Freq.x", "mugalib", "mu", "lib" ,"gal", "Freq.y")] , 2, function(x) ineq(as.numeric(x),type="Gini"))
