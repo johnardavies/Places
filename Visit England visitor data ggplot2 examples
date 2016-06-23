@@ -38,3 +38,27 @@ qplot(as.numeric(visno$X2014.visitors),
       xlab = "Number of visitors",
       fill=I("blue")
 )+scale_x_continuous(labels = comma)
+
+#######################################################################################################################
+#Calculates the 4 year average after averaging over four years
+
+#The columns that are coded as factors that we want to recode
+li<-c("X2011.visitors","X2012.visitors","X2013.visitors","X2014.visitors")
+
+#Recodes the don't knows DKs as NAs
+visno[visno == "DK" ] = NA
+
+
+#Works through the columns in li and converts them to character and then numeric to sort out the class issue caused by them being factors
+for(i in 8:12) {
+  visno[,i]<-as.numeric(as.character(visno[,i]))
+}
+
+
+#averages over all of they ears in li
+visno$yr4av<-rowMeans(visno[,li],  na.rm=TRUE )
+
+#averages the results by region
+regs<-aggregate(visno$yr4av,by=list(visno$Region), FUN=sum)
+###################################################################################################################
+
