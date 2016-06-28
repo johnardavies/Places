@@ -1,0 +1,22 @@
+library(jsonlite)
+
+
+#Reads in a set of json's files line by line
+c <- file("\Culture project\\ra_geocoded.json", "r")
+l <- readLines(c, -1L) # 1L means that one line at a time should be read, the - means it should read to the end of the connection 
+json <- lapply(X=l, fromJSON)
+
+#sets up a matrix to capture the data
+a<-matrix(nrow=length(json), ncol=2)
+
+for (i in 1:length(json)){
+  
+#function that tests if there is numeric data
+f <- function(x){is.numeric(x)}
+
+#if the function is non-numeric then recode as NA
+a[i,1]<-ifelse(f(json[[i]][['lng']][1])==TRUE,json[[i]][['lng']][1], NA)
+a[i,2]<-ifelse(f(json[[i]][['lat']][1])==TRUE,json[[i]][['lat']][1], NA) 
+  
+
+}
