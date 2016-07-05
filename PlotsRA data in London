@@ -1,0 +1,101 @@
+library('rgdal')
+library("RColorBrewer")
+library("classInt")
+library("maptools")
+
+#This code reads in London wards data and London RA data
+#It then calculates the number of RA venues for open and closed data
+
+#1.Reads in London wards data#################################################################################################
+
+#Reads in the London wards data \London-wards-2014_ESRI","London_Ward_CityMerged"
+Lwards<-readOGR("Shape files filepath\\London-wards-2014 (1)\\London-wards-2014_ESRI","London_Ward_CityMerged")
+
+#sets up the lWards projection so that it is the same as everything else
+Lwards<-spTransform(Lwards, CRS("+proj=longlat +datum=WGS84"))
+
+##############################################################################################################################
+#2. Reads in RA data
+
+#Reads in the geocoded data from the csv
+p1<-read.csv('\Culture project\\Rascrape_geocoded.csv', header=T)
+
+#Subsets the data so that only geocoded clubs are included
+p1<-subset(p1, is.na(p1$lat)==FALSE & is.na(p1$lng)==FALSE)
+
+#2. Creates a spatial points vector from the culture24 data
+#Creates the log lat vecto
+d<-cbind(p1$lng, p1$lat)
+
+points = SpatialPoints(d)
+
+##sets up the projection for the photos as the same
+proj4string(points) <- CRS("+proj=longlat +datum=WGS84")
+
+#Binds the data to the points to create a spatial points data frame
+spdf = SpatialPointsDataFrame(points, p1)
+
+#4. Takes the intesection of the RA data and the London wards data###########################
+
+#selects the wards that the photographs fall within
+ward<-over(points,Lwards, returnlist=TRUE)
+
+#binds to the spatial points data frame
+spdf@data<-cbind(spdf@data, ward)  #The new ward level variable is spdf@data$Nf
+
+#Selects only London clubs
+spdf<-subset(spdf, is.na(spdf@data$NAME)==FALSE)
+
+
+spdf@data$flag<-1
+
+#aggregates the data by ward level and by the different categories at ward level
+
+aggdata1<<-aggregate(spdf@data[,c( "flag")],by=list(spdf@data$NAME,spdf@data$status),FUN=sum, na.rm=TRUE)
+
+
+#############################################################################################################
+#5. Lists the different categories and sets them as a vector
+
+sel<-c("open", "closed" )
+
+############################################################################################################
+#6. The mapper function takes a category and maps it over the London wards data
+
+mapper<-function(xs){
+  
+  print(xs)
+  
+  #selects the data that corresponds to a particular category
+  aggdata2<-subset(aggdata1, aggdata1$Group.2==xs)
+  print(dim(aggdata2))
+  
+  #Creates \a new variable labelled by the category name, with the variable values equal to the number ofgroups by ward
+  Lwards@data[,c(xs)]<<-aggdata2[match(Lwards@data[,c("NAME")],aggdata2[ ,c("Group.1")]),c("x")] 
+  
+  #Codes the NAs in the data as 0s
+  Lwards@data[is.na(Lwards@data)]<<- 0
+  
+  #Selects the colour palate
+  my_colours<-brewer.pal(5, "PuBu") 
+  
+  breaks<-classIntervals(Lwards@data[,c("open")], n=5, style="fixed", fixedBreaks=c(0,1,10,30,60,90) , intervalClosure='left', unique=FALSE)
+  #interval closure means that intervals are closed on the right
+  # n is the number of categories in the scale
+  #Where there is 1 entry per break the breaks2 coding is used, otherwise it reverts to a custom scale
+  #style="fixed" uses the fixedBreaks vector
+  
+  #Plots the data
+  plot(Lwards, col=my_colours[findInterval(Lwards@data[,c(xs)], breaks$brks, all.inside=FALSE)],axes=FALSE, border=FALSE)
+  
+  #Plots the chart legend
+  plot<-legend("bottomleft", legend=leglabs(round(breaks$brks,digits=2), between=" to <"), fill=my_colours, bty="n", cex=0.7, title ="Number of clubs")
+  #bty= n means no box around legend border=FALSE means that there is no box
+  
+  #Adds a title that is the group category
+  title(main=xs, cex.lab=0.07)
+  
+}
+
+#Runs the function
+lapply(sel, mapper)
