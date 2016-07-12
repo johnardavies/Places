@@ -1,6 +1,6 @@
 library('rgdal')
 
-
+#This code calculates the number of listed buildings by Travel to Work Areas for the 2011 TTWAs
 listed<-readOGR("filepathListedbuildings", "20120224_ListedBuilding")
 #Sets up the projection
 listed<-spTransform(listed, CRS("+proj=longlat +datum=WGS84"))
