@@ -1,0 +1,26 @@
+library('rgdal')
+
+
+listed<-readOGR("filepathListedbuildings", "20120224_ListedBuilding")
+#Sets up the projection
+listed<-spTransform(listed, CRS("+proj=longlat +datum=WGS84"))
+
+
+#Reads in the travel work data
+ttwa<-readOGR("filepathCulture project\\TTWA", "TTWA_2011_UK_BSC_V3")
+#Sets up the projection
+ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
+
+
+#Selects only points that fall within the UK
+inuk<-over(listed,ttwa, returnlist=TRUE)
+
+#Calculates how many listed buildings by ttwa
+ttwalist<-table(inuk$TTWA11CD)
+
+#Converts it into a data frame
+ttwalist<-as.data.frame(ttwalist)
+
+
+#writes the data to a csv file in the data folder
+write.csv(ttwalist,"filepathCulture project\\Data\\elistbyttwa.csv")
