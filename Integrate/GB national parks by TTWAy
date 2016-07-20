@@ -1,0 +1,35 @@
+#This reads in the 2001 Travel to Work Areas and the GB national parks data and adds a flag for each national
+#park that falls within a TTWA
+#The code then merges back the data with main comb dataset
+
+#Reads in the parks data
+natpark<-readOGR("filepath\\TTWA", "NPARK_DEC_2015_GB_BGC")
+
+#sets the projection
+natpark<-spTransform(natpark, CRS("+proj=longlat +datum=WGS84"))
+
+#Reads in the travel to work areas, this is the 2001 geography
+ttwa<-readOGR("filepath\TTWA 2001", "TTWA_2001_UK_BFE")
+
+#sets the projection
+ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
+
+#Generates a data frame that for each TTWA indicates if it falls within a national park
+inuk<-over(ttwa,natpark, returnlist=TRUE)
+
+#Generates a flag if a ttwa falls within a national park
+inuk$npark<-ifelse(is.na(inuk$NPARK15NM)==TRUE,0,1)
+
+
+ttwa@data<-cbind(ttwa@data, inuk$npark)
+
+parks<-ttwa@data[, c("TTWA01CDO","inuk$npark")]
+
+colnames(parks)<-c("TTWA01CDO","natpark")
+
+#Makes sure the coding is numeric for the TTWAs otherwise some of the places don't match
+parks$TTWA01CDO<-as.numeric(parks$TTWA01CDO)
+
+
+#Merge with comb
+comb<-merge(comb,parks, by=c("TTWA01CDO"), all.x=TRUE )
