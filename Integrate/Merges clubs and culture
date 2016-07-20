@@ -1,0 +1,83 @@
+#This code merges the clubbing data with the musesums and art galleries data
+#It then reads in population data and calculates the lqs by venue. The geography is 2001 TTWAs
+
+library('ggplot2') #For the charts
+library('reshape2')#For the data reordering
+
+#Reads in the clubbing data
+clubs<-read.csv("filepath\Culture project\\Data\\clubsbyttwa.csv", header=T)
+
+#Reads in the museums data
+mlg<-read.csv("filepathCulture project\\Data\\mulibgalbyttwa.csv", header=T)
+
+#Merges the two datasets into a dataframe called comb
+comb<-merge(mlg, clubs, by.x=c("TTWA01CDO"), by.y=c("Var1"), all.x=TRUE)
+
+#recodes the NAs
+comb$Freq<-ifelse(is.na(comb$Freq)==FALSE,comb$Freq,0)
+
+#Removes NI codes due to no match in APS
+
+comb<-subset(comb, (comb$TTWA01CDO %in% c("7","17","55","57","64","75","81","149", "159","168","209"))==FALSE)
+
+#Recodes the names of the clubs data
+colnames(comb)[colnames(comb)=="Freq"] <- "clubno"
+
+#Reads in the demographics data for age share
+#The check names=False argument prevents X's being added to the variable names
+#youshar<-read.csv('filepath\Culture project\\Data\\agesharebyttwa.csv', header=T, check.names = FALSE)
+
+#Reads in the total population data
+youshar2<-read.csv('filepayth\Culture project\\Data\\agebyttwa110716.csv', header=T, check.names = FALSE)
+
+#Switches the format from wide format with the rows as ttwas to long format 
+#aql <- melt(youshar, id.vars = c("Group.1"))
+#aql<-subset(aql,aql$Group.1==1) #Selects the young people's share
+
+#Switches the population data format from wide to long
+aql <- melt(youshar2, id.vars = c("AGES"))
+
+aql$age<-ifelse(aql$AGES %in% c("1","2","3"),"kid",0)
+aql$age<-ifelse(aql$AGES %in% c("4","5","6"),"young",aql$age)
+aql$age<-ifelse(aql$AGES %in% c("7","8","9","10","11","12","13"),"mid",aql$age)
+aql$age<-ifelse(aql$AGES %in% c("14","15"),"retired",aql$age)
+
+#Sums number of people by age group and ttwa so we now have the table in long format
+aql<-aggregate(aql$value, by=list(aql$age, aql$variable),FUN=sum)
+
+#Creates a data frame in long form, we want to shift it to wide form where the Group.2 (i.e. the variable that was called age) Variable names become the column names
+aqs<-dcast(aql, Group.2 ~ Group.1, value.var="x") #Group.2 is the TTWA name
+
+#Sums the population by TTWA
+aqs$pop<-rowSums(aqs[,-1])
+
+#Merges the venues data
+comb<-merge(comb,aqs, by.x=c("TTWA01CDO"), by.y=c("Group.2"), all.x=TRUE)
+
+#drops the last row which has NAs in it
+comb<-comb[-232,]
+
+#sorts out the coding
+comb[, c("lib.y","mu.y","gal.y","clubno")]<-apply(comb[, c("lib.y","mu.y","gal.y","clubno")],2, function(x){as.numeric(as.character(x))})
+
+#Calculates percentage share variables
+comb$libshare<-comb$lib.y/sum(comb$lib.y)
+comb$mushare<-comb$mu.y/sum(comb$mu.y)
+comb$galshare<-comb$gal.y/sum(comb$gal.y)
+comb$clubshare<-comb$clubno/sum(comb$clubno)
+
+comb$kidshare<-comb$kid/comb$pop
+comb$youngshare<-comb$young/comb$pop
+comb$midshare<-comb$mid/comb$pop
+comb$retshare<-comb$retired/comb$pop
+
+comb$popshare<-comb$pop/sum(comb$pop)
+
+p<-(comb$kidshare+comb$youngshare+comb$midshare+comb$retshare)
+#test should be equal to 1
+summary(p)
+
+comb$liblq<-comb$libshare/comb$popshare
+comb$mulq<-comb$mushare/comb$popshare
+comb$gallq<-comb$galshare/comb$popshare
+comb$clublq<-comb$clubshare/comb$popshare
