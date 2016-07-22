@@ -1,0 +1,59 @@
+library("regos")
+library("raster")
+library('rgdal')
+
+#This code tests if a TTWA is on the coast by seeing if the TTWA overlaps with an inbound buffer of the UK coast
+
+#1.Reads in the 2001 TTWA data
+ttwa<-readOGR("filepathMapping\\TTWA 2001", "TTWA_2001_UK_BFE")
+#sets the projection
+ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
+
+#2.Reads in the UK shapefile
+states<-readOGR("filepath\Mapping\\shape\\data","NUTS_RG_03M_2006")
+
+#3.Calculates the buffer area
+
+#Selects the UK NUTS border
+UK<-subset(states, states@data$NUTS_ID=='UK')
+
+#transforms the UK NUTS shape file into epsg so that the distances are in metres to do the boundary analysis
+UK<-spTransform(UK, CRS("+init=epsg:27700")) 
+  
+#Generates a buffer for the UK width is how much inside the boundary the buffer extends 
+coastbound<-gBuffer(UK, width=-10,quadsegs=5,capStyle="ROUND")
+
+#Transforms back the two areas to the standard projection we are using
+coastbound<-spTransform(coastbound, CRS("+proj=longlat +datum=WGS84"))
+UK<-spTransform(UK, CRS("+proj=longlat +datum=WGS84"))
+  
+#Extracts the buffer area, which is the difference between the UK coast and the inland area
+buf<-gDifference(UK, coastbound)  #gIntersection finds the intersecting parts of two shapefiles
+
+#4.Find the ttwas that fall within the buffer zone
+onco<-over(ttwa, buf, returnlist=T)
+
+#Converts the response to a data frame
+onco<-as.data.frame(onco)
+
+#5. binds the resulys to the dataframe and does some recoding
+
+#binds the results to the data frame
+ttwa@data<-cbind(ttwa@data,onco)
+
+#Remove two anomalies caused by rivers and the coastline shape: London and Swindon
+ttwa@data$onco<-ifelse(ttwa@data$TTWA01CDO  %in% c("135","213"),NA, ttwa@data$onco)
+
+#Recodes the NAs
+ttwa@data$onco<-ifelse(is.na(ttwa@data$onco)==TRUE,0,1)
+
+#Converts the ttwa name to numeric to ensure that we can match with the main dataset
+ttwa@data$TTWA01CDO<-as.numeric(ttwa@data$TTWA01CDO)
+
+#6.Runs a visual check to make sure that onco=1 selects coastal areas
+coas<-subset(ttwa, ttwa@data$onco==1 )
+plot(coas)
+
+#7.Merges the coastal variable with the main data
+comb<-merge(comb,coast, by.x=c("TTWA01CDO"), by.y=c("ttwa@data$TTWA01CDO") ,all.x=TRUE)
+
