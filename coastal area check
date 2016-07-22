@@ -47,13 +47,18 @@ ttwa@data$onco<-ifelse(ttwa@data$TTWA01CDO  %in% c("135","213"),NA, ttwa@data$on
 #Recodes the NAs
 ttwa@data$onco<-ifelse(is.na(ttwa@data$onco)==TRUE,0,1)
 
+
 #Converts the ttwa name to numeric to ensure that we can match with the main dataset
 ttwa@data$TTWA01CDO<-as.numeric(ttwa@data$TTWA01CDO)
+
+coast<-ttwa@data[, c('TTWA01CDO', 'onco')]
 
 #6.Runs a visual check to make sure that onco=1 selects coastal areas
 coas<-subset(ttwa, ttwa@data$onco==1 )
 plot(coas)
 
 #7.Merges the coastal variable with the main data
-comb<-merge(comb,coast, by.x=c("TTWA01CDO"), by.y=c("ttwa@data$TTWA01CDO") ,all.x=TRUE)
+comb<-merge(comb,coast, by=c("TTWA01CDO") ,all.x=TRUE)
+
+
 
