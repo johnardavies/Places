@@ -1,26 +1,77 @@
 library('rgdal')
+library('maptools')
 
-#This code calculates the number of listed buildings by Travel to Work Areas for the 2011 TTWAs
+
+#1. Reads in the English listed buildings data
 listed<-readOGR("filepathListedbuildings", "20120224_ListedBuilding")
 #Sets up the projection
 listed<-spTransform(listed, CRS("+proj=longlat +datum=WGS84"))
+#####################################################################################################################################
+#2.Reads in the Welsh listed buildings data
+#c <-readOGR("filepath\\Culture project\\TTWA\\Welshlist.geojson", "OGRGeoJSON") #Fpr the geojson
+#listedw<-geojson_sp(c) 
+
+#Welsh shape files
+listedw<-readOGR("filepath\Culture project\\TTWA", "Cadw_ListedBuildingsPoint")
+#Sets up the projection
+listedw<-spTransform(listedw, CRS("+proj=longlat +datum=WGS84"))
+
+
+listedw2<-readOGR("filepathCulture project\\TTWA","Caddwlisted2")
+#Sets the projection from scratch as the shapefile was converted from multipoint data to singlepoint data with qgis
+#which removes the projection data
+listedw2<-spTransform(listedw2, CRS("+proj=longlat +datum=WGS84"))
+
+#Merges the two Welsh shape files
+Waleslist<-spRbind(listedw, listedw2)
+#####################################################################################################################################
+
+#3. Reads in the Scottish listed buildings data
+listeds<-readOGR("filepath\Culture project\\TTWA", "Listed_Buildings")
+#Sets up the projection
+listeds<-spTransform(listeds, CRS("+proj=longlat +datum=WGS84"))
 
 
 #Reads in the travel work data
-ttwa<-readOGR("filepathCulture project\\TTWA", "TTWA_2011_UK_BSC_V3")
+#ttwa<-readOGR("C:filepathCulture project\\TTWA", "TTWA_2011_UK_BSC_V3")
 #Sets up the projection
+#ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
+
+#####################################################################################################################################
+#4.binds the coordinates together for all three countries and converts to spatial points
+
+wales<-as.matrix(coordinates(Waleslist), nrow=length(Waleslist), ncol=2)
+scotland<-as.matrix(coordinates(listeds), nrow=length(listeds), ncol=2)
+england<-as.matrix(coordinates(listed), nrow=length(listed), ncol=2)
+row.names(england)<-c() #The recoding above is to remove the arbitrary rownames that prevent spatial point conversion
+gblistco<-rbind(wales, england,scotland)
+
+#Remove duplicate coordinates i.e.listed buildings that have been allocated same coordinates (presumably due to spatial proximity)
+gblist<-unique(gblistco)
+
+#Converts it to a spatial points object
+gblist<-SpatialPoints(gblistco)
+
+proj4string(gblist)<-CRS("+proj=longlat +datum=WGS84")
+
+###########################################################################################################################
+#5. Reads in ttwas and count the number of listed buildings by ttwa
+
+ttwa<-readOGR("filepath\Mapping\\TTWA 2001", "TTWA_2001_UK_BFE")
+
+#sets the projection
 ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
 
-
 #Selects only points that fall within the UK
-inuk<-over(listed,ttwa, returnlist=TRUE)
+inuk<-over(gblist,ttwa, returnlist=TRUE)
 
-#Calculates how many listed buildings by ttwa
-ttwalist<-table(inuk$TTWA11CD)
+listab<-table(inuk$TTWA01CDO)
 
-#Converts it into a data frame
-ttwalist<-as.data.frame(ttwalist)
+#Recodes some of the variables to make things work better
+listab<-as.data.frame(listab)
+listab$Var1<-as.numeric(listab$Var1)
+colnames(listab)[colnames(listab)=="Freq"] <- "listed"
 
+#6.Merge the listed buildings with the main data
+comb<-merge(comb,listab,by.x=c("TTWA01CDO"),by.y=c("Var1"))
 
-#writes the data to a csv file in the data folder
-write.csv(ttwalist,"filepathCulture project\\Data\\elistbyttwa.csv")
