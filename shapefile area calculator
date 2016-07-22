@@ -1,0 +1,31 @@
+library('rgeos')
+
+#Calculates the area of a set of SpatialPolygonsDataFrame in this case for travel to work areas
+
+#Area function
+area<-function(x){
+  
+#selects the area  
+sel<-subset(ttwa,ttwa@data[, c("TTWA01CDO")]==x)
+
+#transforms into planar coordinates to calculate the area
+sel<-spTransform(sel, CRS("+init=epsg:27700")) 
+
+pro#Calculates the area and returns the 
+return(gArea(sel)) #Returns the area in the units of the current projection which is in m
+
+}
+
+class(ttwa@data$TTWA01CDO)
+
+
+a<-as.matrix(ttwa@data$TTWA01CDO, nrow=length(ttwa@data$TTWA01CDO), ncol=1)
+
+
+ttwa@data$area<-apply(a,1,area)
+
+
+#This said, the below, does the same job if ttwa is projected into planar coordinate and byid=TRUE 
+#then the area of subgeometries will also be calculated
+
+gArea(ttwa, byid=TRUE)
