@@ -1,6 +1,7 @@
 library('rgdal')
 library('maptools')
-
+#This code merges listed buildings coordinates data from England, Scotland and Wales to create an integrated set of spatial points.
+#It then calculates how many buildings per ttwa there are, and binds with existing data that has been matched to the TTWAs
 
 #1. Reads in the English listed buildings data
 listed<-readOGR("filepathListedbuildings", "20120224_ListedBuilding")
