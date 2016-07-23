@@ -7,7 +7,7 @@ natpark<-readOGR("C:\\Users\\John\\Documents\\Culture project\\TTWA", "NPARK_DEC
 natpark<-spTransform(natpark, CRS("+proj=longlat +datum=WGS84"))
 
 #Reads in the travel to work areas, this is the 2001 geography
-ttwa<-readOGR("C:\\Users\\John\\Google Drive\\Mapping\\TTWA 2001", "TTWA_2001_UK_BFE")
+ttwa<-readOGR("filepath\Mapping\\TTWA 2001", "TTWA_2001_UK_BFE")
 
 #sets the projection
 ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
