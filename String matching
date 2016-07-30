@@ -1,0 +1,42 @@
+#Peforms string matching between two sets of names of visitor attractions 1. Visit England visitor number data 2. Culture24 database
+
+#The library for string matching
+library('RecordLinkage')
+
+#######################################################################################################################################
+#Sets both of the attractions to lowercase
+visno$Attraction<-tolower(visno$Attraction)
+
+#The Culture24 data
+p1$names<-tolower(p1$names)
+
+#Vectorises the names so it can be fed into an apply function
+nam<-as.matrix(p1$names, nrow=length(p1$names), ncol=1)
+
+#######################################################################################################################################
+#Function that compares how close the names are using levenshteinSim distance
+ClosestMatch2 = function(string){
+  s<-matrix(nrow=1,ncol=3)
+
+  distance = levenshteinSim(string, visno$Attraction);
+  
+  s[1,1]<-paste(visno$Attraction[distance == max(distance)], collapse ="") #Collapses the multiple strings that are returned into 1 so it fits on same cell
+  s[1,2]<-as.numeric(max(distance)) #Returns the highest value of the similarity measure
+  s[1,3]<-as.character(string) #Returns the original string that was submitted
+  return(s)
+
+}
+#######################################################################################################################################
+#store<-matrix(nrow=length(p1$names), ncol=3)
+
+#Produces the matching attraction, the distance measure and the original string
+store<-apply(nam,1, ClosestMatch2)
+
+#Transposes the data to get it in the format of the rows being of the dimension of the vector that was originally submitted
+store<-t(store)
+
+#Subsets the data based on the distance value that's returned
+storeprob<-subset(store, store[,2]>0.8)
+
+#Writes the file
+write.csv(storeprob,"filepathCulture project\\storeprob.csv")
