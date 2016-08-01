@@ -1,4 +1,4 @@
-library("regos")
+library("rgeos")
 library("raster")
 library('rgdal')
 
