@@ -104,7 +104,7 @@
    // function is the function that gets called if the data is returned from geojson
        $.getJSON("listed7.geojson",function(data){
        
-  //L.geogJson parses geojson allowing it to be displayed on a map. It is allocated to the geojson variable
+  //L.geoJson parses geojson allowing it to be displayed on a map. It is allocated to the geojson variable
   geojson=L.geoJson(data, {
 
     //1. add GeoJSON layer to the map once the file is loaded    
@@ -113,7 +113,7 @@
           density = feature.properties.lisbuild;
           gd=getColor(density)
       return { color: "#999", weight: 1, fillColor: gd, fillOpacity: .9 }; 
-    //This returns the style that's been chosed inc fillcolour which varies with the no of listed buildings
+    //This returns the style that's been chosen inc fillcolour which varies with the no of listed buildings
     },
 
     //2. This function sets up what happens when you interact with a layer
