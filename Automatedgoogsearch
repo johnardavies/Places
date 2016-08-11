@@ -1,0 +1,33 @@
+import requests
+from gogauth import * #imports authentification
+import json
+import sqlite3
+import time
+
+
+#Sets up the database####################################################################################
+conn = sqlite3.connect(filepath attractgooglesearch.db')
+conn.text_factory = str 
+c=conn.cursor()
+#Creates the table that the components of the returned python dictionary will be stored within. This has an automated id and timestamp
+c.execute('''CREATE TABLE attractionsvis(id integer primary key autoincrement,ser string,retno int, kind string, url text, items text, context text, queries text, searchInformation text, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+
+#########################################################################################################
+#Creates a list of attractions to loop through
+attractions=["Windsor Castle","Tintern Abbey", "Hatfield House", "Blenheim palace", "Stonehenge"]                                                                   
+for x in attractions:
+    time.sleep(5)
+    mu_url2='https://www.googleapis.com/customsearch/v1?q="'+str(x)+'"' 
+    #Payloads adds in the other bits of the https request
+    #CX corresponds to the search engine instance
+    #CR corresponds to the country that the search is taking place within
+    payload = {'key': KEY, 'cx': CX, 'cr': CR}
+    rs=requests.get(mu_url2, params=payload)
+    data=rs.json() #Converts the returned json into a python dictionary
+    #The keys for the python dictionary are :['kind', 'url', 'items', 'context', 'queries', 'searchInformation'] based on using data.keys() 
+    #Inserts the data into a database by extracting the different components of the json
+    c.execute('''INSERT INTO attractionsvis (ser ,retno, kind , url , items , context , queries , searchInformation) values(?,?,?,?,?,?,?,?)''',(str(x),int(data['searchInformation']['totalResults']),str(data['kind']),str(data['url']),str(data['items']),str(data['context']),str(data['queries']),str(data['searchInformation'])))
+    conn.commit()
+
+
+    
