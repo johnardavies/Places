@@ -3,16 +3,17 @@ library('rgdal')
 library('reshape2')
 library('geojsonio')
 
+
+######################################################################################################################################
 #1.Reads in the geocoded museums data
 
 accgeo<-read.csv("filepath\\Culture project\\accreditedmusgeoco190816.csv", header=T)
 
-
 #Removes records that can't be used for geocoding
 #Either because they don't exist
-#Or becuase they are at the resolution of the UK
+#Or they are at the resolution of the UK
 accgeo<-subset(accgeo, accgeo$accuracy!="country" & accgeo$long!='NA')
-
+#######################################################################################################################################
 #2.Converts the data to a spatialpoints data frame
 d<-cbind(accgeo$long, accgeo$lat)
 
@@ -23,12 +24,12 @@ proj4string(points) <- CRS("+proj=longlat +datum=WGS84")
 
 spdf = SpatialPointsDataFrame(points,accgeo)
 
+#######################################################################################################################################
 #Reads in the TTWA data
-#4. Reads in the TTWA data
+#3. Reads in the TTWA data
 
 #The 2001 TTWA data
 ttwa<-readOGR("filepathMapping\\TTWA 2001", "TTWA_2001_UK_BFE")
-
 
 #Converts the TTWA data to numeric to make the match work
 ttwa@data$TTWA01CDO<-as.numeric(ttwa@data$TTWA01CDO)
@@ -44,9 +45,8 @@ ttwa<-subset(ttwa, !(ttwa@data$TTWA01CDO %in% NI) )
 
 #sets the projection
 ttwa<-spTransform(ttwa, CRS("+proj=longlat +datum=WGS84"))
-
-
-#5. Counts the number of venues by TTWA
+#######################################################################################################################################
+#4. Counts the number of venues by TTWA
 
 #Selects only points that fall within the UK
 inuk<-over(spdf,ttwa, returnlist=TRUE)
@@ -86,8 +86,8 @@ spdf@data$TTWA01CDO<-as.numeric(spdf@data$TTWA01CDO)
 
 aggdata1<-aggregate(spdf@data[,c("herorg", "natorg", "local", "mil", "indep", "uni", "flag")],by=list(spdf@data$TTWA01CDO),FUN=sum, na.rm=TRUE)
 
-
-#6. Calculates the location quotients
+#######################################################################################################################################
+#5. Calculates the location quotients
 #Reads in the total population data
 youshar2<-read.csv('filepath\Culture project\\Data\\agebyttwa110716.csv', header=T, check.names = FALSE)
 
@@ -113,7 +113,7 @@ aqs$pop<-rowSums(aqs[,-1])
 aggdata1<-merge(aggdata1,aqs, by.x=c("Group.1"), by.y=c("Group.2"), all.x=TRUE)
 
 ##################################################################################################################################
-#7.Calculates the location quotients
+#6.Calculates the location quotients
 
 #Calculates the lqs population share
 aggdata1$popshare<-aggdata1$pop/sum(aggdata1$pop, na.rm=TRUE)
@@ -136,8 +136,8 @@ q<-aggdata1[match(ttwa@data$TTWA01CDO,aggdata1$Group.1), ]
 
 ttwa@data<-cbind(ttwa@data, q)
 
-
-#8. Write the file as a geojson for use in mapping
+#####################################################################################################################################
+#7. Write the file as a geojson for use in mapping
 
 writeOGR(ttwa, 'filepathCulture project\\accredited10', layer='ttwa',driver='GeoJSON')
  
