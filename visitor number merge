@@ -1,0 +1,111 @@
+library('ggplot2')
+library('RecordLinkage') #The library for string matching
+
+#This merges in google search metadata and foursquare check ins with visitor numbers from Visit England
+#The results are then plotted
+
+####################################################################################################################################
+#1.Reads in the visitors and calculates the four year average 
+visno<-read.csv("filepath Culture project\\full_attractions_listing.csv", header=T)
+
+#Variable names
+# "Attraction"      "Region"          "County"          "District"        "CRU"             "Category"        "Category.Detail" "X2010.visitors" 
+# "X2011.visitors"  "X2012.visitors"  "X2013.visitors"  "X2014.visitors"  "Estimate."       "X..13.14"        "Charge"          "Charge.band"    
+# "Size"  
+
+
+#The columns that are coded as factors that we want to recode
+li<-c("X2011.visitors","X2012.visitors","X2013.visitors","X2014.visitors")
+
+#Recodes the don't knows DKs as NAs
+visno[visno == "DK" ] = NA
+
+#Works through the columns in li and converts them to character and then numeric to sort out the class issue caused by them being factors
+for(i in 8:12) {
+  visno[,i]<-as.numeric(as.character(visno[,i]))
+}
+
+#averages over all of they years in li
+visno$yr4av<-rowMeans(visno[,li],  na.rm=TRUE )
+
+#######################################################################################################################################
+#2. Peforms string matching between two sets of names of visitor attractions 1. Visit England visitor number data 2. Culture24 database
+
+#Sets both of the attractions to lowercase
+visno$Attraction<-tolower(visno$Attraction)
+
+#The Culture24 data which has previously been imported as p1
+p1$names<-tolower(p1$names)
+
+#Sets up the vector that the apply function will loop through
+nam<-as.matrix(visno$Attraction, nrow=length(visno$Attraction), ncol=1)
+
+#Function that compares how close the names are using levenshteinSim distance
+ClosestMatch2 = function(string){
+  s<-matrix(nrow=1,ncol=3)
+
+  distance = levenshteinSim(string, p1$names);
+  s[1,1]<-as.character(string) #Returns the original string that was submitted
+  s[1,2]<-as.numeric(max(distance)) #Returns the highest value of the similarity measure
+  s[1,3]<-paste(p1$names[distance == max(distance)], collapse ="") #Collapses the multiple strings that are returned into 1 so it fits on same cell
+  return(s)
+
+}
+
+#Produces the matching attraction, the distance measure and the original string where the original string is the visit England data
+store<-apply(nam,1, ClosestMatch2)
+
+#Transposes the data to get it in the format of the rows being the rows of the vector that was originally submitted
+store<-t(store)
+
+colnames(store)<-c("viseng", "dist", "cult24")
+
+store<-as.data.frame(store)
+
+#Merges the visitor numbers back in
+store<-merge(store,visno[, c('Attraction','yr4av')], by.x=c('viseng'), by.y=c('Attraction') )
+
+########################################################################################################################################
+#3. reads in the culture 24 page returned number of web pages data
+cult24pag<-read.csv("filepath\Culture project\\cult24pageres.csv", header=T, stringsAsFactors=FALSE) #strings as factors is to prevent the data being plotted as a factor
+
+#cleans it up and removes duplicates
+cult24pag<-subset(cult24pag, cult24pag$pages!="missing")
+cult24pag<-unique(cult24pag)
+
+cult24pag$cult24name<-gsub( "\n", "",cult24pag$cult24name)
+
+store$cult24<-tolower(store$cult24)
+
+cult24pag$cult24<-as.character(cult24pag$cult24)
+
+#######################################################################################################################################
+#4. Merges the visitors data with the google search data and plots it
+visnopag<-merge(store, cult24pag[,c('cult24name','pages')] ,by.x="cult24",by.y="cult24name", all.x=T)
+
+#Converts the class of the data to avoid issues later on
+visnopag[,3:5]<-apply(visnopag[, 3:5],2 ,function(x){as.numeric(as.character(x))})
+
+options("scipen"=100, "digits"=4) #Changes the formatting so that we don't have scientific 
+
+#subsets the data to remove outliers and bad matches between the visit england data and the culture 24 data
+tes<-subset(visnopag,(as.numeric(visnopag$dist)>0.95) & is.na(visnopag$pages)==FALSE & as.numeric(visnopag$pages)<25000 & as.numeric(visnopag$yr4av)<100000) 
+
+#Plots the number of visitors  by the number of pages returned
+qplot(y=as.numeric(tes$yr4av), x=as.numeric(tes$pages),xlab="Number of pages returned", ylab="Number of visitors", log="y")+ geom_smooth(method = "lm", se = FALSE)
+
+#Four square#############################################################################################################
+#5. Reads in the number of four square checkins
+foursquare<-read.csv("filepath \Culture project\\Data\\foursquare.csv", header=T, stringsAsFactors=FALSE) #strings as factors is to prevent the data being plotted as a factor
+
+#Merges the number of checkins data with the Culture 24 data
+visnopag<-merge(store, foursquare ,by.x="cult24",by.y="name", all.x==T )
+options("scipen"=100, "digits"=4)
+
+#subsets the data to remove outliers and bad matches between the visit england data and the culture 24 data
+tes<-subset(visnopag,(as.numeric(as.character((visnopag$dist))>0.95) & is.na(visnopag$checkinsCount)==FALSE & visnopag$checkinsCount<5000))
+
+#Plots the number of visitors  by the number of foursquare checkins
+qplot(y=as.numeric(tes$yr4av), x=as.numeric(tes$checkinsCount),xlab="Number of checkins", ylab="Number of visitors", log='yx')+ geom_smooth(method = "lm", se = FALSE)
+
+################################################################################################################################
