@@ -40,7 +40,7 @@ pts = SpatialPoints(photom)
 ##sets up the projection for the photos as the same
 proj4string(pts) <- CRS("+proj=longlat +datum=WGS84")
 
-#1. Code that calculates a flag according to whether a photo is in inner of outer London
+#1. Code that calculates a flag according to whether a photo is in inner or outer London
 ##############################################################################################################
 #Reads in the the EU NUTS shape files NUTS_RG_03M_2006
 
@@ -58,7 +58,7 @@ Lmap<-spTransform(Lmap, CRS("+proj=longlat +datum=WGS84"))
 ##############################################################################################
 #Adds a flag for inner and outer London
 
-#returnswhether the photos fell in inner or outer London
+#returns whether the photos fell in inner or outer London
 f<-over(pts,Lmap, returnlist=TRUE) 
 
 #Recodes the photos falling outside London those outside appear as NAs
@@ -67,7 +67,7 @@ f$NUTS_ID<-ifelse(is.na(f$NUTS_ID)==TRUE ,'OUTSIDE', f$NUTS_ID)
 #binds the results to the photo data 
 dataphoto<-cbind(photo, f)
 
-#creates a spatial points data frame this will create a new variable called spdf@data$NUTS_ID
+#creates a spatial points data frame, this will create a new variable called spdf@data$NUTS_ID
 spdf = SpatialPointsDataFrame(pts, dataphoto)
 
 
