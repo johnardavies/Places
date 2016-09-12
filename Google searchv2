@@ -1,0 +1,73 @@
+import requests
+from gogauth import *
+import json
+import sqlite3
+import time
+import csv
+import random
+
+
+#Sets up the database####################################################################################
+conn = sqlite3.connect('Database filepath Culture project\\attractgooglesearch.db')
+conn.text_factory = str 
+cdat=conn.cursor()
+#Creates the table that the components of the returned python dictionary will be stored within
+#cdat.execute('''CREATE TABLE attractionsvis5(id integer primary key autoincrement,ser string,retno int, kind string, url text, items text, context text, queries text, searchInformation text, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+#[u'kind', u'url', u'items', u'context', u'queries', u'searchInformation']
+#########################################################################################################
+#filepath of museum names
+ifile  = open('filepath\museums120816v2.csv', "rb")
+
+store=[]
+
+for x in ifile:
+    time.sleep(60 + 10*random.random()) #Adds in random noise
+    mu_url2='https://www.googleapis.com/customsearch/v1?q="'+str(x)+'"'   
+    #CX corresponds to the search engine instance
+    #CR corresponds to the country that the search is taking place within
+    payload = {'key': KEY, 'cx': CX, 'cr': CR}
+    rs=requests.get(mu_url2, params=payload)
+    data=rs.json() #Converts the returned json into a python dictionary
+    print(rs.headers)
+    print type(data)
+    #The keys for the python dictionary are :[u'kind', u'url', u'items', u'context', u'queries', u'searchInformation'] based on using data.keys() 
+  #  print data.keys()
+  #  print(data)
+    print(mu_url2)
+    try:
+       a=int(data['searchInformation']['totalResults'])
+    except:
+       a='missing'
+    try:
+       b=str(data['kind'])
+    except:
+       b='missing' 
+    try:
+       c=str(data['url'])
+    except:
+       c='missing'
+    try:
+        d=str(data['items'])
+    except:
+        d='missing'
+    try:
+        e=str(data['context'])
+    except:
+        e='missing'
+    try:
+        f=str(data['queries'])
+    except:
+        f='missing'
+    try:
+      g=str(data['searchInformation'])
+    except:
+      g='missing'   
+    #print(data)
+   # it=data['items']
+   # print(c)
+    print (a,b,c,d,e,f,g)
+    if a=='missing':
+       time.sleep(60*60)
+       store.append(x)
+    cdat.execute('''INSERT INTO attractionsvis4(ser ,retno, kind , url , items , context , queries , searchInformation) values(?,?,?,?,?,?,?,?)''',(str(x),a,b,c,d,e,f,g))
+    conn.commit()
