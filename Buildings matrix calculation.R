@@ -75,3 +75,26 @@ write.csv(store, "filepath2")
 #Note: to read csv adjacency matrices into gephi need to convert commas to semi colons
 ##############################################################################################################
 ##############################################################################################################
+
+#Loads in the matrix data with the names added in, better to automate this stage
+dat=read.csv(filepath\\Flickr work\\photoswbuildingmatrix2.csv",header=TRUE,row.names=1,check.names=FALSE) # choose an adjacency matrix from a .csv file
+m=as.matrix(dat) # coerces the data set as a matrix
+
+#These operations remove the data that corresponds to names which have alphanumeric coding
+#1.Creates a list of the alphanumeric names
+alpha<-(grep("0D4",colnames(m), value=TRUE))
+#2. Removes  the alphanumeric names
+mcut<-subset(colnames(m), (colnames(m) %in% alpha )==FALSE)
+
+#Subsets the matrix to the row and column names that we want using the non alphanumeric names
+m<-m[mcut,mcut]
+
+print(dim(m)) #Checks the matrix has been reduced
+library(igraph)
+
+#Converts the matrix to a graphfile
+g=graph.adjacency(m,mode="undirected",weighted=NULL) 
+
+#writes the graphfile
+write.graph(g,"filepath\\buildingswnames2.graphml" ,format=c("graphml"))
+
