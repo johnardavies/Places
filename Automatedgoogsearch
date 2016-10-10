@@ -1,33 +1,71 @@
 import requests
-from gogauth import * #imports authentification
+from gogauth import *
 import json
 import sqlite3
 import time
+import csv
+import random
 
 
 #Sets up the database####################################################################################
-conn = sqlite3.connect(filepath attractgooglesearch.db')
+conn = sqlite3.connect('filepath\\Culture project\\attractgooglesearch.db')
 conn.text_factory = str 
-c=conn.cursor()
-#Creates the table that the components of the returned python dictionary will be stored within. This has an automated id and timestamp
-c.execute('''CREATE TABLE attractionsvis(id integer primary key autoincrement,ser string,retno int, kind string, url text, items text, context text, queries text, searchInformation text, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+cdat=conn.cursor()
+#Creates the table that the components of the returned python dictionary will be stored within
+cdat.execute('''CREATE TABLE attractionsvis5(id integer primary key autoincrement,ser string,retno int, kind string, url text, items text, context text, queries text, searchInformation text, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
 
 #########################################################################################################
-#Creates a list of attractions to loop through
-attractions=["Windsor Castle","Tintern Abbey", "Hatfield House", "Blenheim palace", "Stonehenge"]                                                                   
-for x in attractions:
-    time.sleep(5)
-    mu_url2='https://www.googleapis.com/customsearch/v1?q="'+str(x)+'"' 
-    #Payloads adds in the other bits of the https request
+ifile  = open('filepath\\Culture project\\museums120816v2.csv', "rb")
+
+store=[]
+
+for x in ifile:
+    time.sleep(60 + 10*random.random())
+    mu_url2='https://www.googleapis.com/customsearch/v1?q="'+str(x)+'"'   
     #CX corresponds to the search engine instance
     #CR corresponds to the country that the search is taking place within
     payload = {'key': KEY, 'cx': CX, 'cr': CR}
     rs=requests.get(mu_url2, params=payload)
     data=rs.json() #Converts the returned json into a python dictionary
-    #The keys for the python dictionary are :['kind', 'url', 'items', 'context', 'queries', 'searchInformation'] based on using data.keys() 
-    #Inserts the data into a database by extracting the different components of the json
-    c.execute('''INSERT INTO attractionsvis (ser ,retno, kind , url , items , context , queries , searchInformation) values(?,?,?,?,?,?,?,?)''',(str(x),int(data['searchInformation']['totalResults']),str(data['kind']),str(data['url']),str(data['items']),str(data['context']),str(data['queries']),str(data['searchInformation'])))
+    print(rs.headers)
+    print type(data)
+    #The keys for the python dictionary are :[u'kind', u'url', u'items', u'context', u'queries', u'searchInformation'] based on using data.keys() 
+    print(mu_url2)
+    try:
+       a=int(data['searchInformation']['totalResults'])
+    except:
+       a='missing'
+    try:
+       b=str(data['kind'])
+    except:
+       b='missing' 
+    try:
+       c=str(data['url'])
+    except:
+       c='missing'
+    try:
+        d=str(data['items'])
+    except:
+        d='missing'
+    try:
+        e=str(data['context'])
+    except:
+        e='missing'
+    try:
+        f=str(data['queries'])
+    except:
+        f='missing'
+    try:
+      g=str(data['searchInformation'])
+    except:
+      g='missing'   
+    print (a,b,c,d,e,f,g)
+    if a=='missing':
+       time.sleep(60*60)
+       store.append(x)
+    cdat.execute('''INSERT INTO attractionsvis4(ser ,retno, kind , url , items , context , queries , searchInformation) values(?,?,?,?,?,?,?,?)''',(str(x),a,b,c,d,e,f,g))
     conn.commit()
+    
 
 
     
