@@ -1,0 +1,37 @@
+library(jsonlite)
+library("timeDate")
+
+
+#Reads in a set of json files line by line
+c <- file("filepathClubbingdata111016.txt", "r")
+l <- readLines(c, -1L) # 1L means that one line at a time should be read, the - means it should read to the end of the connection 
+json <- lapply(X=l, fromJSON)
+
+a<-matrix(nrow=length(json), ncol=4)
+
+colnames(a)<-c("Name", "Date", "Year", "Month")
+
+
+#Extracts the date of the last night
+for (i in 1:length(json)){
+  
+  #Removes the redundant time formatting
+  s1<-ifelse(length(s3)>0,gsub('T00:00','',json[[i]]$last_events$date[1]), 'NA')
+  #Co<_nverts the date time
+  
+  #Sets up the date time format
+   s2 <- strptime(s1,format="%Y-%m-%d")
+
+  a[i, c("Name")]<-json[[i]]$closed
+  a[i, c("Date")]<-strftime(s2, format="%Y-%m")
+  a[i, c("Year")]<-strftime(s2, format="%Y")  #Extracts the Year
+  a[i, c("Month")]<-strftime(s2, format="%m") #Extracts the Month
+                      
+}
+
+#Selects the closed clubs
+a1<-subset(a, a[,c("Name")]==TRUE)
+
+plot(table(a1[, c("Date")]))
+plot(table(a1[, c("Year")]))
+plot(table(a1[, c("Month")]))
