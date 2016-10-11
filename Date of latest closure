@@ -9,7 +9,7 @@ json <- lapply(X=l, fromJSON)
 
 a<-matrix(nrow=length(json), ncol=4)
 
-colnames(a)<-c("Name", "Date", "Year", "Month")
+colnames(a)<-c("Closed", "Date", "Year", "Month")
 
 
 #Extracts the date of the last night
@@ -17,20 +17,20 @@ for (i in 1:length(json)){
   
   #Removes the redundant time formatting
   s1<-ifelse(length(s3)>0,gsub('T00:00','',json[[i]]$last_events$date[1]), 'NA')
-  #Co<_nverts the date time
+  #Converts the date time
   
   #Sets up the date time format
    s2 <- strptime(s1,format="%Y-%m-%d")
 
-  a[i, c("Name")]<-json[[i]]$closed
-  a[i, c("Date")]<-strftime(s2, format="%Y-%m")
+  a[i, c("Closed")]<-json[[i]]$closed
+  a[i, c("Date")]<-strftime(s2, format="%Y-%m") #Extracts the Year and the Month
   a[i, c("Year")]<-strftime(s2, format="%Y")  #Extracts the Year
   a[i, c("Month")]<-strftime(s2, format="%m") #Extracts the Month
                       
 }
 
 #Selects the closed clubs
-a1<-subset(a, a[,c("Name")]==TRUE)
+a1<-subset(a, a[,c("Closed")]==TRUE)
 
 plot(table(a1[, c("Date")]))
 plot(table(a1[, c("Year")]))
