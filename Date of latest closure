@@ -35,3 +35,27 @@ a1<-subset(a, a[,c("Closed")]==TRUE)
 plot(table(a1[, c("Date")]))
 plot(table(a1[, c("Year")]))
 plot(table(a1[, c("Month")]))
+
+library('plyr')
+#Does a sum over the years and whether the club is open and closed
+f<-count(a, c('Year', 'Name'))
+
+library('reshape2')
+
+# dcast reshapes the data from long form using Name and Year
+#ms<-dcast(f, Year ~  Closed, value.var='freq')
+
+library('ggplot2') 
+
+ggplot(data=f,aes(x=Year,y=freq,fill=factor(Closed)))+
+  geom_bar(stat="identity",position="dodge")+ scale_fill_discrete(name='Closed',labels=c("False", "True"))+ xlab("Year of most recent event") + ylab("Number of clubs")
+
+
+
+
+
+
+
+
+
+
