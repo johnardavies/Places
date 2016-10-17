@@ -1,0 +1,22 @@
+library('sp')
+
+###Undertakes a calculation of the distance to the city centre for all of the London wards and then
+#adds this back into the data
+
+#Reads in the NUTS shape files
+states2<-readOGR("filepathMapping\\shape\\data","NUTS_RG_03M_2006")
+
+#Selects the London geographic area 
+London<-subset(states2, states2@data$NUTS_ID=='UKI',)
+
+#This function calculates the distance between the centre point of the ward and the centre of London (coordinated London)
+dist<-function(rat1){
+cnt<-spDistsN1(coordinates(London), rat1 , longlat=TRUE)
+          }
+                  
+#Calculates distance from the centre for each of the elements of spdf
+k<-apply(coordinates(spdf),1, dist)
+centdist<-as.matrix(k)
+
+#binds the data to the original data source
+spdf@data<-cbind(spdf@data, centdist) 
