@@ -1,0 +1,30 @@
+library('sp')
+
+#Calculates how far each club is from the centre of its travel to work area
+#######################################################################################################################################
+#Function that takes in the name of the TTWA(x) and its longitude and latitude y and z
+centredist<-function(x,y,z){
+
+#Selects the relevant ttwa that the club is in
+f<-subset(ttwa, ttwa@data$TTWA01NM==x)
+
+#Calculates the distance between the club and the centre of the TTWA it is in
+cnt<-spDistsN1(cbind(y,z), coordinates(f), longlat=TRUE)
+
+return(cnt)
+  
+}
+########################################################################################################################################
+#Calculates the distance to the city centre
+centdist<-mapply(centredist, spdf@data$TTWA01NM,spdf@data$Lon,spdf@data$Lat)
+
+#Adds it to the data frame
+centdist<-as.vector(centdist)
+spdf@data<-cbind(spdf@data,centdist)
+
+#Calculates the average distance by Travel to Work Area
+tab<-aggregate(spdf@data$centdist , by=list(spdf@data$TTWA01NM), FUN=mean)
+
+#Sorts the crosstab so that the places which have clubs the furthest distance from the centre come first
+tab[order(tab[c("x")], decreasing=T),] 
+
