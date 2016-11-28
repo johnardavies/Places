@@ -1,0 +1,67 @@
+#Maps the data for the NUTS2 geographies
+library(rgdal)
+library(RColorBrewer)
+library(classInt)
+library(maptools)
+library(rgeos)
+library('sp')
+library(geojsonio)
+
+
+#1. Reads in the NUTS geography data
+states<-readOGR("filepath\\Mapping\\shape\\data","NUTS_RG_03M_2006")
+
+#Selects only the NUTS1 geographies
+states2<-subset(states, states@data$STAT_LEVL_=='1')
+
+#Selects the UK by matching NUTS codes that start with UK
+UK<-subset(states2, grepl("^UK", states2@data$NUTS_ID)==TRUE)
+
+#Sets as character to remove the blank NUTS_IDs
+UK@data$NUTS_ID<-as.character(UK@data$NUTS_ID)  #Sets as character to remove the other blank NUTS_IDs
+
+
+#Sets up the projection
+UK<-spTransform(UK,  CRS("+proj=longlat +datum=WGS84"))
+
+#2. Reads in the accredited museums data
+accgeo<-read.csv("filepath\\Culture project\\accreditedmusgeoco190816.csv", header=T)
+
+#Removes records that can't be used for geocoding
+#Either because they don't exist
+#Or becuase they are at the resolution of the UK
+accgeo<-subset(accgeo, accgeo$accuracy!="country" & accgeo$long!='NA')
+
+#2.Converts the data to a spatialpoints data frame
+d<-cbind(accgeo$long, accgeo$lat)
+
+points = SpatialPoints(d)
+
+##sets up the projection for the museums as the same
+proj4string(points) <- CRS("+proj=longlat +datum=WGS84")
+
+#Creates the spatialpoints dataframe
+spdf = SpatialPointsDataFrame(points,accgeo)
+
+
+#3. Counts the number of venues by region 
+
+#calculates which regions the museums fall within
+inuk<-over(spdf, UK, returnlist=TRUE)
+
+#Calculates how many museums per region
+musreg<-table(inuk$NUTS_ID)
+
+#converts to a datframe
+musreg<-as.data.frame(musreg)
+
+#####Binds the results to the spatial points data frame
+UK@data=data.frame(UK@data, musreg[match(UK@data[,c("NUTS_ID")], musreg[, c("Var1")]),])
+
+#4. Writes something the shapefile as a geojson
+#Converts the spatial points dataframe to geojson
+
+f<-geojson_json(UK)
+
+#writes to disk
+geojson_write(f, file = "filepath\\Culture project\\jsond\\myfile3.geojson")
