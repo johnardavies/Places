@@ -69,6 +69,7 @@
     </div>
 </div>
 <script>
+//This code creates a Leaflet map with a hexgrid the opacity of which can be changed by a slider
 //The div above creates a slider element
 
 //Sets up the map that we start with
