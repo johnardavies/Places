@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <meta charset=utf-8 />
+  <title>Access to museums | NESTA</title>
+  <link rel='shortcut icon' href='path/to/favicon.ico' type='image/x-icon' />
+	<script src='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.js'></script>
+  <script src='https://npmcdn.com/@turf/turf@3.5.1/turf.min.js'></script>
+<script   src="https://code.jquery.com/jquery-2.2.4.min.js"   integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="   crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.js"></script>
+	<link href='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/turf/v1.3.0/turf.min.js'></script>
+<script src="/js/leaflet-0.7.2/leaflet.ajax.min.js"></script>
+<link rel="stylesheet" href="lib/leaflet/leaflet.css" />
+
+<style>
+  body { margin:0; padding:0; }
+  #map { position:absolute; top:0; bottom:0; width:100%; }
+.map-overlay {
+    font:bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    position: absolute;
+    width: 25%;
+    bottom: 3%;
+    left: 0;
+    padding: 10px;
+}
+
+.map-overlay .map-overlay-inner {
+    background-color: #fff;
+    box-shadow:0 1px 2px rgba(0, 0, 0, 0.20);
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.map-overlay label {
+    display: block;
+    margin: 0 0 10px;
+}
+
+.map-overlay input {
+    background-color: transparent;
+    display: inline-block;
+    width: 100%;
+    position: relative;
+    margin: 0;
+    cursor: ew-resize;
+}
+
+.large {
+	font-size: 2em;
+}
+
+#venue-count {
+	color: green;
+}
+
+
+</style>
+</head>
+<body>
+<div id='map'></div>
+<div class='map-overlay top'>
+    <div class='map-overlay-inner'>
+        <label>Intensity: <span id='slider-value2'></span></label>
+        <input id='slider2' type='range' min='0' max='1' step='0.25' value='0.5' />
+    </div>
+</div>
+<script>
+//The div above creates a slider element
+
+//Sets up the map that we start with
+L.mapbox.accessToken = 'insertaccesstoken';
+var map = L.mapbox.map('map', 'mapbox.streets').setView([54.4, -7], 6);
+
+//This sets up the bounding box for the hexagonal grid
+var bbox = [-8.61726  , 49.88287,  1.763026, 60.844887];
+var cellWidth = 0.1;
+
+//This creates variables for the slider and the slider value
+var slider2 = document.getElementById('slider2');
+var sliderValue2 = document.getElementById('slider-value2');
+
+//Creates a hexagonal grid
+var hexgrid = turf.hex(bbox,cellWidth);
+
+    hexgrid.features.map(function(grid) {
+    grid.properties = {
+        "fill": "#800026",
+        "stroke": "#25561F",
+        "stroke-width": 1,
+
+    };
+    return grid;
+});
+
+//Creates a function that updates the fillopacity of hexgrid
+function updateOpacity(value) {
+    hexgrid.setStyle({fillOpacity:value});
+}
+
+//Sets up the style of the hexgrid
+var exteriorStyle = {
+    "color": "#ffffff",
+    "weight": 0,
+};
+
+//Adds hexgrid to the map and applies the style that we have just specified
+var hexgrid = L.geoJson(hexgrid,{style: exteriorStyle}).addTo(map);
+
+// Creates the interactive part of the slider
+slider2.addEventListener('input', function(s) {
+f=s.target.value;
+sliderValue2.textContent = s.target.value + ' opacity';
+//Calls the fillOpacity slider
+updateOpacity(f);
+
+   });
+
+
+</script>
+</body>
+</html>
