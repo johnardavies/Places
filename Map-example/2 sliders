@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <meta charset=utf-8 />
+  <title>Map title</title>
+  <link rel='shortcut icon' href='path/to/favicon.ico' type='image/x-icon' />
+	<script src='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.js'></script>
+  <script src='https://npmcdn.com/@turf/turf@3.5.1/turf.min.js'></script>
+<script   src="https://code.jquery.com/jquery-2.2.4.min.js"   integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="   crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-ajax/2.1.0/leaflet.ajax.js"></script>
+	<link href='https://api.mapbox.com/mapbox.js/v2.4.0/mapbox.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox.js/plugins/turf/v1.3.0/turf.min.js'></script>
+
+<style>
+  body { margin:0; padding:0; }
+  #map { position:absolute; top:0; bottom:0; width:100%; }
+.map-overlay {
+    font:bold 12px/20px 'Helvetica Neue', Arial, Helvetica, sans-serif;
+    position: absolute;
+    width: 25%;
+    bottom: 3%;
+    left: 0;
+    padding: 10px;
+}
+
+.map-overlay .map-overlay-inner {
+    background-color: #fff;
+    box-shadow:0 1px 2px rgba(0, 0, 0, 0.20);
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.map-overlay label {
+    display: block;
+    margin: 0 0 10px;
+}
+
+.map-overlay input {
+    background-color: transparent;
+    display: inline-block;
+    width: 100%;
+    position: relative;
+    margin: 0;
+    cursor: ew-resize;
+}
+
+.large {
+	font-size: 2em;
+}
+.legend {
+    text-align: left;
+    line-height: 18px;
+    color: #555;
+}
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+.legend .colorcircle {
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    margin-top: 0px;
+}
+
+
+#venue-count {
+	color: green;
+}
+
+
+</style>
+</head>
+<body>
+<div id='map'></div>
+    <div class='map-overlay top'>
+    <div class='map-overlay-inner'>
+        <label>Radius: <span id='slider-value'></span></label>
+        <input id='slider' type='range' min='10' max='60' step='10' value='30' />
+    </div>
+    <div class='map-overlay-inner'>
+        <label>Intensity: <span id='slider-value2'></span></label>
+        <input id='slider2' type='range' min='0' max='1' step='0.1' value='0.8' />
+    </div>
+    </div>
+</div>
+<script>
+var bufferCentre;
+var bufferFeature;
+var bufferSize = 30; 
+
+//This overlays a map with a hexagon grid which counts how many sites fall within a certain radius of the centre of the hexagon
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Sets up the map that we start with
+L.mapbox.accessToken = 'access token';
+var map = L.mapbox.map('map', 'mapbox.streets').setView([54.4, -7], 6);
+//Adds a scale to the map in metric units
+L.control.scale({position:'topright', imperial:true}).addTo(map);
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//slider refers to the document element with the Id slider
+var slider = document.getElementById('slider');
+var sliderValue = document.getElementById('slider-value');
+var slider2 = document.getElementById('slider2');
+var sliderValue2 = document.getElementById('slider-value2');
+
+
+//This sets up the bounding box for the hexagonal grid
+var bbox = [-8.61726  , 49.88287,  1.763026, 60.844887];
+var cellWidth = 0.1;
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//The variables and functions below define the characteristics of the hexagon grid
+
+  
+var hexgrid = turf.hex(bbox,cellWidth);
+
+    hexgrid.features.map(function(grid) {
+    grid.properties = {
+     //fillOpacity: 0.5
+        "fill": "#800026",
+       "stroke": "#25561F",
+        "stroke-width": 1
+    };
+    return grid;
+});
+
+
+
+//Code to color in the map
+//create color ramp
+function getColor(y) {
+    return y == undefined ? '#888' :
+           y < 1 ? '#ffffe9' :
+           y < 2 ? '#edf8b1' :
+           y < 5 ? '#c7e9b4' :
+           y < 10 ? '#7fcdbb' :
+           y < 20 ? '#41b6c4' :
+           y < 50 ? '#1d91c0' :
+           y < 100 ? '#225ea8' :
+                      '#0c2c84';
+}
+
+
+//Adds the legend
+var hexlegend = L.control({
+    position: 'topright'
+});
+//generate legend contents
+hexlegend.onAdd = function (map) {
+	//set up legend grades and labels
+    var div = L.DomUtil.create('div', 'info legend'),
+        grades = [1, 2, 5, 10, 20, 50, 100],
+        labels = ['<strong>Number of museums</strong>'],
+        from, to;
+    
+	//iterate through grades and create a color field and label for each
+    for (var i = 0; i < grades.length; i++) {
+        from = grades[i];
+        to = grades[i + 1];
+        labels.push(
+            '<i style="background:' + getColor(from + 0.5) + '"></i> ' + from + (to ? '&ndash;' + to : '+'));
+    }
+    div.innerHTML = labels.join('<br>');
+    return div;
+};
+//Adds the legend to the map
+hexlegend.addTo(map);
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Sets up a series of variables that we will use elsewhere
+
+var hexgrid2;
+var a;
+var lineLayer;
+var pt;
+var feature_collection;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//buf is the main function that is called it takes as an input the radius from the centre of the hexagon
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+function buf(x){
+a=[];  
+
+//Loops through each of the elements of the hexagon grid i.e. each grid element is a feature and plants a flag in the midpoint
+for (var i = 0; i < hexgrid.features.length; i++) {
+
+//Creates a centroid for each hex
+var centroids = turf.centroid(hexgrid.features[i]);
+
+//creates a bugger of radius x around each point
+var oneMileOut=turf.buffer(centroids,x, 'miles');
+
+//Adds the border area to the list/array that's being built. The 0 selects the feature to make sure that we are building a collection of features
+a.push(oneMileOut.features[0]);
+
+
+}
+
+// Sets the circles as a turf featurecollection object
+feature_collection = turf.featurecollection(a);
+
+//Counts how many points fall within the circles 
+feature_collection= turf.count(feature_collection, pt , 'count');
+
+//Adds the back the data to the hexagons by looping through the features
+for (var i = 0; i < hexgrid.features.length; i++) {
+    hexgrid.features[i].properties['count']=feature_collection.features[i].properties['count']
+}
+
+//Adds the hexagons to the map with the styling feature
+hexgrid2=L.geoJson(hexgrid ,{onEachFeature: onEachHex}).addTo(map);
+
+
+}
+
+//End of buf function
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//This function reads in the data and calculates the points that will be used in the analysis
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+$.getJSON("musacc.geojson", function(data){
+
+lineLayer= L.mapbox.featureLayer().setGeoJSON(data);
+pt = lineLayer.toGeoJSON();
+
+//Calls the buf function to get the map started
+buf(bufferSize);
+
+});
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The styling functions
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//The code below handles the styling of the grid 
+//highlight style
+var hexStyleHighlight = {
+    color: "#336",
+    weight: 2,
+    opacity: 0.7,
+};
+
+
+
+//create style, with fillColor picked from color ramp
+function style(feature) {
+	return {
+		fillColor: getColor(feature.properties.count),
+    	color: "#888",
+    	weight: 0.9,
+    	opacity: 1,
+	};
+}
+
+//attach styles and popups to the hex layer
+function highlightHex(e) {
+    var layer = e.target;
+    layer.setStyle(hexStyleHighlight);
+    if (!L.Browser.ie && !L.Browser.opera) {
+        layer.bringToFront();
+    }
+}
+
+function resetHexHighlight(e) {
+    var layer = e.target;
+    var hexStyleDefault=style(layer.feature);
+    layer.setStyle(hexStyleDefault);
+}
+
+function onEachHex(feature, layer) {
+    layer.on({
+        mouseover: highlightHex,
+        mouseout: resetHexHighlight
+    });
+        var hexStyleDefault=style(layer.feature);
+    layer.setStyle(hexStyleDefault);
+    //for the sake of grammar
+    if (feature.properties.count == 1) {
+        var be_verb = "There is";
+        var point_s = "museum";
+    } else {
+        var be_verb = "There are";
+        var point_s = "museums";
+    }
+        layer.bindPopup(be_verb+' <b>'+feature.properties.count+'</b> '+point_s+'within '+bufferSize+' miles.');
+
+}
+
+//Function that changes the opacity of the hexagon layer
+function updateOpacity(value) {
+    hexgrid2.setStyle({fillOpacity:value});
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// The sliders
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The slider in terms of the radius that the museums are falling within
+//Adds the interactivity in terms of changing the radius that museums fall within
+slider.addEventListener('input', function(e) {
+	bufferSize = e.target.value
+	buf(bufferSize)
+	sliderValue.textContent = e.target.value + ' miles';
+});
+
+//The slider for the opacity of the map
+slider2.addEventListener('input', function(s) {
+f=s.target.value;
+sliderValue2.textContent = s.target.value + ' opacity';
+// Calls the function that changes the opacity of the hexagon grid
+updateOpacity(f);
+   });
+
+
+
+</script>
+</body>
+</html>
