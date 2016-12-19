@@ -2,8 +2,8 @@ library('rgdal')#Reads in the 2015 data
 hp2011<-read.csv("E:\\ppd_data (1).csv", header=T)
 #Reads in the 2011 data
 hp2015<-read.csv("E:\\ppd_data.csv", header=T)
-#Removes the spaces from the postcode 
-filehp2011$postcode<-gsub(" ", "", hp2011$postcode)
+#Removes the spaces from the postcode file
+hp2011$postcode<-gsub(" ", "", hp2011$postcode)
 hp2015$postcode<-gsub(" ", "", hp2015$postcode)
 
 #Reads in the postcode data
