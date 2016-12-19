@@ -21,7 +21,8 @@ hp2015<-merge(hp2015,pcmap, by.x="postcode", by.y="pcd" , all.x=TRUE)
 hp2015av<-aggregate(hp2015$price_paid, by=list(hp2015$msoa11), FUN=mean, na.rm=TRUE)
 
 
-hp1115<-merge(hp2015av, hp2011av, by="Group.1")colnames(hp1115)<-c("msoa11", "hp2015", "hp2011")
+hp1115<-merge(hp2015av, hp2011av, by="Group.1")
+colnames(hp1115)<-c("msoa11", "hp2015", "hp2011")
 
 #Growth rates
 hp1115$growth<-(hp1115$hp2015-hp1115$hp2011)/hp1115$hp2011
@@ -30,21 +31,21 @@ hp1115$growth<-(hp1115$hp2015-hp1115$hp2011)/hp1115$hp2011
 hp2015transa<-as.data.frame(table(hp2015$msoa11))
 hp1115<-merge(hp1115, hp2015transa, by.x="msoa11", by.y="Var1", all.x=TRUE)
 hp2011transa<-as.data.frame(table(hp2011$msoa11))
-hp1115<-merge(hp1115, hp2011transa,   by.x="msoa11", by.y="Var1", all.x=TRUE)7
+hp1115<-merge(hp1115, hp2011transa,   by.x="msoa11", by.y="Var1", all.x=TRUE)
 #Renames columns 5 and 6
 colnames(hp1115)[5:6]<-c("2015t", "2011t")
 
 
 library('rgdal')
-# The most resolution geography reads in the msoa data
-lonso<-readOGR("filepath\\ESRI","")
+#Reads in London msoa shape file
+lonso<-readOGR("F:\\ESRI","MSOA_2011_London_gen_MHW")
 
 #Sets the projection up
 
 lonso<-spTransform(lonso, CRS("+proj=longlat +datum=WGS84"))
 
 
-lonso@data$hp<-as.numeric(as.character(hp1115[match(lonso@data[,c("MSOA_CODE")],hp1115[ ,c("msoa11")]),]))
+lonso@data<-cbind(lonso@data, hp1115[match(lonso@data[,c("MSOA11CD")],hp1115[ ,c("msoa11")]),])
 
 #Writes a geojson file
 library(geojsonio)
