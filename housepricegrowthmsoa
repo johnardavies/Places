@@ -13,12 +13,20 @@ pcmap$pcd<-gsub(" ", "", pcmap$pcd)
 #Merges the postcode file with the 2011 houseprice data
 hp2011<-merge(hp2011,pcmap, by.x="postcode", by.y="pcd"   , all.x=TRUE)
 #average by middle super output areas
-hp2011av<-aggregate(hp2011$price_paid, list(hp2011$msoa11), FUN=mean, na.rm=TRUE)
+#hp2011av<-aggregate(hp2011$price_paid, list(hp2011$msoa11), FUN=mean, na.rm=TRUE)
+
+#Median by middle super output areas as more robust to outliers
+hp2011av<-aggregate(hp2011$price_paid, list(hp2011$msoa11), FUN=median, na.rm=TRUE)
 
 #Merges the 2015 house price data with the postcode data
 hp2015<-merge(hp2015,pcmap, by.x="postcode", by.y="pcd" , all.x=TRUE)
 #average by middle super output areas
-hp2015av<-aggregate(hp2015$price_paid, by=list(hp2015$msoa11), FUN=mean, na.rm=TRUE)
+#hp2015av<-aggregate(hp2015$price_paid, by=list(hp2015$msoa11), FUN=mean, na.rm=TRUE)
+
+#Median by middle super output areas as more robust to outliers
+hp2015av<-aggregate(hp2015$price_paid, by=list(hp2015$msoa11), FUN=median, na.rm=TRUE)
+
+
 
 
 hp1115<-merge(hp2015av, hp2011av, by="Group.1")
