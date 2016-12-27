@@ -1,1 +1,25 @@
-#This code takes a large csv of UK land registry data, extracts transactions that happened in greater London# and writes the results to another file#The file the data is read in fromfile_in <- "F:\\pp-complete2015.csv"#The file that the London data is written tofile_out <- file("F:\\pp-complete2015Lond.csv","a")#Creates a function that works through every line in the Land registry House Price csv and outputs the lines that match GREATER LONDONprocessFile = function(filepath,outpath) {  con = file(filepath, "r")  while ( TRUE ) {    #Reads one line at a time    line = readLines(con, n = 1)    #If there is no content in the line stop the process    if ( length(line) == 0 ) {      break    }    #Sets up GREATER LONDON as a full match on its own, not a partial match    Lond<-"\\<GREATER LONDON\\>"    #If there is a match write the line to the file that's set up in the outpath    if(grepl(Lond,line)) writeLines(line, outpath)      }  close(con)}#Runs the functionprocessFile(file_in, file_out)Lonprop<-read.csv("F:\\pp-complete2015Lond.csv")#Adds in the column namescolnames(Lonprop)<-c("unique_id",  "price_paid",  "deed_date", "postcode", "property_type", "new_build",  "estate_type", "saon", "paon", "street", "locality", "town", "district", "county","a1","a2")
+#This code takes a large csv of UK land registry data, extracts transactions that happened in greater London
+# and writes the results to another file#The file the data is read in from
+
+file_in <- "F:\\pp-complete2015.csv"#The file that the London data is written to
+file_out <- file("F:\\pp-complete2015Lond.csv","a") 
+
+#Creates a function that works through every line in the Land registry House Price csv and outputs the lines that match GREATER LONDON
+
+processFile = function(filepath,outpath) 
+{  con = file(filepath, "r") 
+while ( TRUE ) {    #Reads one line at a time    line = readLines(con, n = 1)    
+#If there is no content in the line stop the process    
+if ( length(line) == 0 ) {      break    }   
+#Sets up GREATER LONDON as a full match on its own, not a partial match   
+Lond<-"\\<GREATER LONDON\\>"    
+#If there is a match write the line to the file that's set up in the outpath   
+
+if(grepl(Lond,line)) writeLines(line, outpath)      }  
+close(con)}
+
+#Runs the functionprocessFile(file_in, file_out)
+
+Lonprop<-read.csv("F:\\pp-complete2015Lond.csv")#Adds in the column names
+
+colnames(Lonprop)<-c("unique_id",  "price_paid",  "deed_date", "postcode", "property_type", "new_build",  "estate_type", "saon", "paon", "street", "locality", "town", "district", "county","a1","a2")
