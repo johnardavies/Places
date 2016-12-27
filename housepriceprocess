@@ -23,3 +23,12 @@ close(con)}
 Lonprop<-read.csv("F:\\pp-complete2015Lond.csv")#Adds in the column names
 
 colnames(Lonprop)<-c("unique_id",  "price_paid",  "deed_date", "postcode", "property_type", "new_build",  "estate_type", "saon", "paon", "street", "locality", "town", "district", "county","a1","a2")
+###Recodes the time variable
+library(timeDate)
+Lonprop$deed_date<-as.timeDate(Lonprop$deed_date, zone = "GMT")
+
+)Lonprop$deed_date<- strptime(Lonprop$deed_date, "%Y-%e-%d")
+#Creates a year variable
+Lonprop$year <- strftime(Lonprop$deed_date, format="%Y") 
+#Creates a month variable
+Lonprop$month <- as.POSIXct(Lonprop$deed_date, format="%e")
