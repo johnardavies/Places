@@ -18,7 +18,8 @@ Lond<-"\\<GREATER LONDON\\>"   
 if(grepl(Lond,line)) writeLines(line, outpath)      }  
 close(con)}
 
-#Runs the functionprocessFile(file_in, file_out)
+#Runs the function
+processFile(file_in, file_out)
 
 Lonprop<-read.csv("F:\\pp-complete2015Lond.csv")#Adds in the column names
 
