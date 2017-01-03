@@ -36,7 +36,7 @@ onco<-over(ttwa, buf, returnlist=T)
 #Converts the response to a data frame
 onco<-as.data.frame(onco)
 
-#5. binds the resulys to the dataframe and does some recoding
+#5. binds the results to the dataframe and does some recoding
 
 #binds the results to the data frame
 ttwa@data<-cbind(ttwa@data,onco)
