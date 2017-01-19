@@ -1,7 +1,7 @@
 #This code checks whether a TTWA has a Nationalpark that falls (partly or wholly) in its boundaries
 
 #Reads in the parks data
-natpark<-readOGR("C:\\Users\\John\\Documents\\Culture project\\TTWA", "NPARK_DEC_2015_GB_BGC")
+natpark<-readOGR("filepath\\Culture project\\TTWA", "NPARK_DEC_2015_GB_BGC")
 
 #sets the projection
 natpark<-spTransform(natpark, CRS("+proj=longlat +datum=WGS84"))
