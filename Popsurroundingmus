@@ -1,0 +1,147 @@
+###################################################################
+#Create a shape file of the lsoas with the population added in.
+
+#Reads in the lower superoutput data
+#Reads in the lsao shape files   1909 Welsh ones 32844 English ones
+lsoa<-readOGR("filepath\\Documents\\Boundaries", "Lower_Layer_Super_Output_Areas_December_2011_Generalised_Clipped__Boundaries_in_England_and_Wales")
+
+#Transforms the projection
+lsoa<-spTransform(lsoa, CRS("+proj=longlat +datum=WGS84"))
+
+#Reads in the population data for England and Wales This is midyear 2015 data
+pop2015<-read.csv("filepath\2015 lsoa population estimatesv2.csv", header=T, , fileEncoding="latin1", stringsAsFactors = FALSE)
+
+pop2015$All.Ages<-as.numeric(gsub(",","",pop2015$All.Ages))
+
+#Attach the population. All lsoas match across checked
+lsoa@data<-cbind(lsoa@data, pop2015[match(lsoa@data[,c("lsoa11cd")],pop2015[ ,c("ï..Area.Codes")]),c("All.Ages")])
+
+#Recodes the last column name2015 lsoa population estimates.csv
+names(lsoa@data)[ncol(lsoa@data)]<-"Population"
+
+lsoa@data$england<-ifelse(grepl("^E", lsoa@data$lsoa11cd),1,0) #This adds a flag for English lsoas    
+d<-subset(lsoa,lsoa@data$england==1)
+#This is just to check that we get the right population for England
+#English population 54786327
+
+#Reads in the index of multiple deprivation data for England
+multdep<-read.csv("filepath\\indexofmultiple deprivation2015.csv", header=T, stringsAsFactors = FALSE)
+
+#Extracts the part of the lsoacoding we want. It works, but inelegant better to do with a regex
+multdep$lsoacode<-paste("E0",lapply(strsplit(multdep$lsoa, " E0"), `[`, 2), sep="")
+
+lsoa@data$lsoa11cd<-as.character(lsoa@data$lsoa11cd)
+
+#Binds the data to the dataframe match works for England only
+lsoa@data<-cbind(lsoa@data, multdep[match(lsoa@data[,c("lsoa11cd")],multdep[ ,c("lsoacode")]),])
+
+###########################################################################################################
+#Creates a spatial points data frame from the lsoas
+#Extracts the coordinates of the lower super output areas
+lpoints = SpatialPoints(coordinates(lsoa))
+
+##sets up the projection for the photos as the same
+proj4string(lpoints) <- CRS("+proj=longlat +datum=WGS84")
+
+#Binds the data to the points to create a spatial points data frame
+lpoints = SpatialPointsDataFrame(lpoints, lsoa@data)
+
+#############################################################################################################
+#Part 2
+#Reads in the museums geojson file
+library(geojsonio)
+library(sp)
+library(rgeos)
+library(rgdal)
+library(raster)
+
+#Reads in the geojson that has the museums data
+mus = readOGR("filepath\\museumsmap\\docs\\muswpopulationlonlat.geojson", "OGRGeoJSON")
+
+
+#mus@data<-mus@data[, c(names(mus@data[1:13]))]
+mus@data<-mus@data[, c("Name","Museum.type","Address", "Postcode")]
+#Removes the museums that are outside the UK. A bbox would be better
+#mus<-subset(mus, coordinates(mus)[,1] > -8.650007 & coordinates(mus)[,1] <1.762916)
+#mus<-subset(mus,  coordinates(mus)[,2] > 49.864747& coordinates(mus)[,2] <60.860761)
+
+#Sets up the data frame that will hold the data
+df<-data.frame(matrix(NA, nrow = length(mus), ncol = 1))
+rownames(df)<-rownames(mus@data)
+
+#Function that counts the number of people living in the surrounding areas
+
+areasur<-function(x){
+
+
+#Adds a buffer to the museums data
+mus<-spTransform(mus, CRS("+init=epsg:27700")) 
+
+#Generates a buffer for the UK width is how much inside the boundary the buffer extends 
+#The byid keeps the points separate rather than merging the buffer
+
+musbuf<-gBuffer(mus, width=x*1000,quadsegs=5,capStyle="ROUND", byid=TRUE)
+
+#Transforms back the two areas to the standard projection we are using
+musbuf<-spTransform(musbuf, CRS("+proj=longlat +datum=WGS84"))
+
+musbuf= SpatialPolygonsDataFrame(musbuf, mus@data)
+
+plot(musbuf)
+
+#finds the lpoints that fall within the buffer
+s<-over(musbuf,lpoints, returnList = TRUE)
+
+print(s[[1]])
+                                         
+results=matrix(nrow=length(s),ncol=2) 
+
+
+#Loops through the list of museums and sums the population within 100km
+for (i in 1:length(s)){
+
+results[i,1]<-sum(as.numeric(s[[i]]$Population))
+f<-subset(s[[i]], s[[i]]$IndexofMultipleDeprivation==1 | s[[i]]$IndexofMultipleDeprivation==2 )
+results[i,2]<-sum(as.numeric(f$Population))
+
+
+
+}
+
+
+na1<-paste("pop",x,sep="")
+na2<-paste("dep",x,sep="")
+
+
+colnames(results)<-c(na1, na2)
+
+df<<-cbind(df,results)
+
+}
+
+
+f<-c(20,10,5,2)
+lapply(f,areasur)
+
+#Merging the results back in
+#Removes the first column
+
+df<-df[,-1]
+
+mus@data<-cbind(mus@data, df[match(rownames(mus@data),rownames(df)), ])
+#Transforms the projection
+SPDF<-spTransform(SPDF, CRS("+proj=longlat +datum=WGS84"))
+################################################################################################################
+#Writes the file out as a geojson
+
+library(geojsonio)
+
+mus<-spTransform(mus, CRS("+proj=longlat +datum=WGS84"))
+
+musd<-geojson_json(mus)
+
+#Recodes some of the data
+
+options(encoding = "utf8")
+#writes to disk
+geojson_write(musd, file = "filepath\\Maps\\muswpopulationlonlat15032016v2.geojson")
