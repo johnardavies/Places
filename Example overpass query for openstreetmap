@@ -1,6 +1,6 @@
 /*
 This is an example Overpass query for Open Street Map
-Try it out by pressing the Run button above!
+Try it out at https://overpass-turbo.eu/#
 You can find more examples with the Load tool.
 */
 */The brackets turns this into an or statement for 
