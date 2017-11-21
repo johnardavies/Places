@@ -3,8 +3,10 @@ This is an example Overpass query for Open Street Map
 Try it out at https://overpass-turbo.eu/#
 You can find more examples with the Load tool.
 */
-*/The brackets turns this into an or statement for 
-*/the different types of gallery, the brackets contain the bounding box
+/*
+The brackets turns this into an or statement for 
+the different types of gallery, the brackets contain the bounding box
+*/
 (node[tourism=gallery](51.287,-0.5203751,51.7,0.0345);
 node[shop=gallery](51.287,-0.5203751,51.7,0.0345);
 node[amenity=gallery](51.287,-0.5203751,51.7,0.0345););
