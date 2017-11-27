@@ -23,3 +23,33 @@ node[amenity=gallery](51.287,-0.5203751,51.7,0.0345););
 (._;>;);
 out;
 
+
+
+/*
+nodes (defining points in space),
+ways (defining linear features and area boundaries), and
+relations (which are sometimes used to explain how other elements work together).
+
+The below extracts all types of galleries (for nodes, ways and relations) 
+in GB
+
+*/
+
+
+
+[out:json];{{geocodeArea:Britain}}->.searchArea;
+(
+  
+node[tourism=gallery](area.searchArea);>;
+way[tourism=gallery](area.searchArea);>;
+relation[tourism=gallery](area.searchArea);>;
+node[amenity=gallery](area.searchArea);>;
+way[amenity=gallery](area.searchArea);>;
+relation[amenity=gallery](area.searchArea);>;
+node[shop=gallery](area.searchArea);>;
+way[shop=gallery](area.searchArea);>;
+relation[shop=gallery](area.searchArea);>; 
+
+)
+
+;out;
