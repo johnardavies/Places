@@ -59,8 +59,8 @@ visno<-dcast(aggdatal, unitaryaut ~ artform , value.var='notickets')
 Unitary@data<-cbind(Unitary@data, visno[match(Unitary@data[,c("ctyua16nm")],visno[ ,c("unitaryaut")]),])
 
 
-#Wites it out as a json 
-geojson_write(Unitary, file = "filepath\\Culture map\\crimela.geojson")
+#Writes it out as a json 
+geojson_write(Unitary, file = "filepath\\Culture map\\cultureunit.geojson")
 
 
 ############################################################################################################
