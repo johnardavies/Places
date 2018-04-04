@@ -64,18 +64,6 @@ geojson_write(Unitary, file = "filepath\\Culture map\\crimela.geojson")
 
 
 ############################################################################################################
- Lists the different categories of show and sets them as a vector
-
-sel<-c("tech", "alternative lifestyle", "book clubs", "career/business", "cars/motorcycles",
-       "education/learning", "fashion/beauty", "fine arts/culture",
-       "fitness", "food/drink", "games", "health/wellbeing", "hobbies/crafts", "language/ethnic identity", "LGBT" ,"movements/politics", "movies/film","music",
-       "new age/spirituality", "outdoors/adventure", "paranormal","parents/family", "pets/animals","photography", "religion/beliefs"           
-       , "sci-fi/fantasy", "singles", "socializing", "sports/recreation", "support", "writing" )
-
-
-sel<-as.matrix(sel, nrow=31, ncol=1)
-
-############################################################################################################
 # The mapper function takes a category and maps it for the unitary authorities
 
 arts<-c("Children/Family","Christmas Show", "Contemporary Visual Arts","Dance" , "Film", "General Entertainment" ,
