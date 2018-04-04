@@ -1,0 +1,119 @@
+library(rgdal)
+library(sp)
+library(stringr)
+library('reshape2')
+library(geojsonio)
+library("classInt")
+library(RColorBrewer)
+library("maptools")
+
+#This code merges different kinds of show by unitary authority with the shape file and then plots it
+
+Unitary<-readOGR("filepath\Documents\\Unitary Authority","Counties_and_Unitary_Authorities_December_2016_Super_Generalised_Clipped_Boundaries_in_England_and_Wales")
+
+#Unitary authorities of England are local authorities that are responsible for the provision of all local government services within a district. 
+
+
+Unitary<-spTransform(Unitary, CRS("+proj=longlat +datum=WGS84"))
+
+#Reads in the performance data
+
+dailytrans2015<-read.csv("filepath\\Documents\\Unitary Authority\\January_to_December_2015_-_Daily_Transactions.csv", header=T)
+
+#Reformats the way that the coordinates are coded so that it goes neatly into two separate columns
+dailytrans2015$Geolocation<-as.character(dailytrans2015$Geolocation)
+
+dailytrans2015$Geolocation<-gsub("\\(" ,"", dailytrans2015$Geolocation)
+dailytrans2015$Geolocation<-gsub(")" ,"", dailytrans2015$Geolocation)
+dailytrans2015$Geolocation<-gsub("" ,"", dailytrans2015$Geolocation)
+
+
+dailytrans2015$lat<-as.numeric(str_split_fixed(dailytrans2015$Geolocation, ",", 2)[,1])
+dailytrans2015$lon<-as.numeric(str_split_fixed(dailytrans2015$Geolocation, ",", 2)[,2])
+
+#drop points that are na
+dailytrans2015<-subset(dailytrans2015 ,is.na(dailytrans2015$lat)==FALSE|is.na(dailytrans2015$lon)==FALSE)
+
+points = SpatialPoints(cbind(dailytrans2015$lon,dailytrans2015$lat ))
+
+
+#sets up the projection for the points
+proj4string(points) <- CRS("+proj=longlat +datum=WGS84")
+
+
+#Checks that the location is in the unitary authority
+plot(Unitary)
+plot(points, add=T)
+
+
+#Aggregates by days returning results by artform and Unitary Authority
+aggdatal <-aggregate(dailytrans2015[, c("Number.of.Tickets","Number.of.Performances")], by=list(dailytrans2015$Headline.Artform,dailytrans2015$Unitary.Authority), FUN=sum, na.rm=TRUE)
+
+#Redoes the column names for aggdata
+colnames(aggdatal)<-c("artform", "unitaryaut", "notickets", "noperform")
+
+#Switches the shape of the format to wide form
+visno<-dcast(aggdatal, unitaryaut ~ artform , value.var='notickets')
+
+#Merges it in with the shape file 
+Unitary@data<-cbind(Unitary@data, visno[match(Unitary@data[,c("ctyua16nm")],visno[ ,c("unitaryaut")]),])
+
+
+#Wites it out as a json 
+geojson_write(Unitary, file = "filepath\\Culture map\\crimela.geojson")
+
+
+############################################################################################################
+ Lists the different categories of show and sets them as a vector
+
+sel<-c("tech", "alternative lifestyle", "book clubs", "career/business", "cars/motorcycles",
+       "education/learning", "fashion/beauty", "fine arts/culture",
+       "fitness", "food/drink", "games", "health/wellbeing", "hobbies/crafts", "language/ethnic identity", "LGBT" ,"movements/politics", "movies/film","music",
+       "new age/spirituality", "outdoors/adventure", "paranormal","parents/family", "pets/animals","photography", "religion/beliefs"           
+       , "sci-fi/fantasy", "singles", "socializing", "sports/recreation", "support", "writing" )
+
+
+sel<-as.matrix(sel, nrow=31, ncol=1)
+
+############################################################################################################
+# The mapper function takes a category and maps it for the unitary authorities
+
+arts<-c("Children/Family","Christmas Show", "Contemporary Visual Arts","Dance" , "Film", "General Entertainment" ,
+   
+"Literature","Museums/Heritage" , "Music" , "Musical Theatre",  "Other Artforms","Outdoor Arts", 
+
+"Plays/Drama",  "Traditional Visual Arts" , "Uncoded", "Workshops") 
+
+arts<-as.matrix(arts, nrow=16, ncol=1)
+
+mapper<-function(xs){
+  
+  
+  #Codes the NAs in the data as 0s
+ Unitary@data[is.na(Unitary@data)]<<- 0
+  
+  #Selects the colour palate
+  my_colours<-brewer.pal(6, "PuBu") 
+  
+  breaks<-classIntervals(Unitary@data[,c("Plays/Drama")], n=6, style="fixed", fixedBreaks=c(0,500,1000,1500,2000,50000,200000) , intervalClosure='left', unique=FALSE)
+  #interval closure means that intervals are closed on the right
+  # n is the number of categories in the scale
+  #Where there is 1 entry per break the breaks2 coding is used, otherwise it reverts to a custom scale
+  #style="fixed" uses the fixedBreaks vector
+  
+  #Plots the data
+  plot(Unitary, col=my_colours[findInterval(Unitary@data[,c(xs)], breaks$brks, all.inside=FALSE)],axes=FALSE, border=FALSE)
+  
+  #Plots the chart legend
+  plot<-legend("bottomleft", legend=leglabs(round(breaks$brks,digits=2), between=" to <"), fill=my_colours, bty="n", cex=0.7, title ="Number of groups")
+  #bty= n means no box around legend border=FALSE means that there is no box
+  
+  #Adds a title that is the group category
+  title(main=as.character(xs), cex.lab=0.07)
+  
+}
+
+
+######Applies the mapping function to each of the categories contained in the arts vector
+
+apply(arts,1, mapper)
