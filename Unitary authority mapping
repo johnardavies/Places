@@ -105,3 +105,39 @@ mapper<-function(xs){
 ######Applies the mapping function to each of the categories contained in the arts vector
 
 apply(arts,1, mapper)
+#####################################################################################################################################
+#####################################################################################################################################
+#Does plots of the daily transactions data
+#The variable names in this bit could be improved
+dailytrans2015<-read.csv("filepath\\2015Dailydata.csv", header=T)
+
+#Adds up the sales by day
+datecount<-aggregate(dailytrans2015[, c("Number.of.Tickets","Number.of.Performances")], by=list(dailytrans2015$Date..UK.Format., dailytrans2015$Headline.Artform), FUN=sum, na.rm=TRUE)
+
+#formats the date
+datecount$day<- strptime(datecount$Group.1, "%d/%m/%Y")
+datecount$month<- strftime(datecount$day, format="%m")
+datecount$day<- strftime(datecount$day, format="%d")
+
+
+library(ggplot2)
+
+#Monthly totals of tickets sold
+ggplot(data=datecount,aes(x=day,y=Number.of.Tickets) , fill=month            )+
+  geom_bar(stat="identity",position="dodge")+ scale_fill_discrete(name='Closed',labels=c("False", "True"))+ xlab("Year") + ylab("Number of tickets sold")
+
+#################Remove the less frequent kinds of shows#########################################
+#Gets the annual counts
+datecounts<-aggregate(dailytrans2015[, c("Number.of.Tickets")], by=list(dailytrans2015$Headline.Artform), FUN=sum, na.rm=TRUE)
+
+#Drops those with less than 100000 people
+mostcommon<-subset(as.character(datecounts$Group.1), datecounts$x>900000)
+
+#Remove the less frequent categories
+datecount<-subset(datecount,as.character(datecount$Group.2) %in% mostcommon & as.character(datecount$Group.2)!="Uncoded")
+############################################################################################
+
+#Split this by artform type
+ggplot(data=datecount, aes(x=month, y=Number.of.Tickets, color=Group.2) )+ geom_line() + facet_wrap("Group.2")
+
+
