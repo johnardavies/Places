@@ -124,7 +124,7 @@ library(ggplot2)
 
 #Monthly totals of tickets sold
 ggplot(data=datecount,aes(x=day,y=Number.of.Tickets) , fill=month            )+
-  geom_bar(stat="identity",position="dodge")+ scale_fill_discrete(name='Closed',labels=c("False", "True"))+ xlab("Year") + ylab("Number of tickets sold")
+  geom_bar(stat="identity",position="dodge")+ xlab("Year") + ylab("Number of tickets sold")
 
 #################Remove the less frequent kinds of shows#########################################
 #Gets the annual counts
