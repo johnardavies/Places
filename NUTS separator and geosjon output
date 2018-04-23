@@ -1,0 +1,36 @@
+library(rgdal)
+library(geojsonio)
+
+#This code selects different resolutions of NUTS files and writes them to separate geojson
+states<-readOGR("filepath\\Geographies\\Higher_res","NUTS_RG_10M_2013_3857")
+
+#Transforms the projection
+states<-spTransform(states,  CRS("+proj=longlat +datum=WGS84"))
+
+#Selects the different NUTS geographies
+EU0<-subset(states, states$LEVL_CODE =='0')
+EU1<-subset(states, states$LEVL_CODE =='1')
+EU2<-subset(states, states$LEVL_CODE =='2')
+EU3<-subset(states, states$LEVL_CODE =='3')
+
+#Creates a list of the NUTS codes
+resolutions<-c('EU0', 'EU1','EU2', 'EU3')
+
+############################################################################################
+#Function that selects the NUTS region fed is as and x and writes the shape file to a geojson
+
+geojsonwriter<-function(x){
+
+  
+f<-geojson_json(get(x))
+
+path<-paste("filepath\Geographies\\eunuts", as.character(x))
+path<-paste(path, ".geojson")
+
+geojson_write(f, file = path)
+}
+
+#############################################################################################
+
+#Applies the function to the NUTS geographies
+lapply(resolutions, geojsonwriter)
