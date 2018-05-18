@@ -1,0 +1,62 @@
+#Reads in the data
+library(ggplot2)
+library(ggmap)
+library(rgdal)
+library(maptools)
+library(plyr)
+
+#Reads in the long and latitude data
+pointsdat<-read.csv("filepath\\georg.csv", header=T)
+
+pointsdat<-as.data.frame(pointsdat)
+
+gg <- ggplot()
+
+#Reads in the local authority shape files
+Lwards<-readOGR("filepath\\docs\\Londonwardsinfo.geojson" , "OGRGeoJSON") 
+#Transforms the Lwards data
+Lwards<-spTransform(Lwards, CRS("+proj=longlat +datum=WGS84"))
+Lwards_df <- fortify(Lwards)
+
+
+pointsdat[, c("lon")]<-as.numeric(as.character(pointsdat[, c("lon")]))
+
+#Plots the points over the map of London wards, with the lighter the color the higher the probability of the building type
+gg+geom_path(data = Lwards_df, aes(x = long, y = lat, group = group),color = 'black', size = .2)+geom_point(data = pointsdat, aes(x = lon, y = lat, color=clust), size=1)+ scale_colour_gradient(low = "blue")
+
+#removes the NAs in the dataset
+pointsdat<-subset(pointsdat, is.na(pointsdat$lon)==FALSE & is.na(pointsdat$lat)==FALSE)
+
+#Creates spatial points object
+pts = SpatialPoints(pointsdat[, c("lon", "lat")])
+
+##sets up the projection for the photos as the same
+proj4string(pts) <- CRS("+proj=longlat +datum=WGS84")
+
+spdf = SpatialPointsDataFrame(pts, pointsdat[, c("lon", "lat", "clust")])
+
+
+#Ovelays the clubs on the London wards data
+inuk<-over(spdf, Lwards, returnlist=TRUE)
+
+
+spdf@data<-cbind(spdf@data,inuk[, c("NAME", "GSS_CODE", "BOROUGH")])
+
+averagegeorg<-aggregate(spdf@data$clust, by=list(spdf@data$GSS_CODE), FUN=mean)
+
+averagegeorg<-as.data.frame.matrix(averagegeorg)
+colnames(averagegeorg)<-c("GSS_CODE", "av_georg_prob")
+
+
+#Binds it to the data
+Lwards@data<-cbind(Lwards@data, averagegeorg[match(Lwards@data$GSS_CODE, averagegeorg$GSS_CODE),])
+
+
+#Reformats the shape file so that it can be used by ggplot2
+Lwards@data$id = rownames(Lwards@data)
+Lwards.points = fortify(Lwards, region="id")
+Lwards.df = join(Lwards.points, Lwards@data, by="id")
+
+#explicitly identifies attribute rows by the .dbf offset.
+#Plots the shaded London wards the data
+ggplot(Lwards.df)+ aes(long,lat,group=group,fill=av_georg_prob)+geom_polygon()
