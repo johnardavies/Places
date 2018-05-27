@@ -1,0 +1,28 @@
+import pandas as pd
+import os
+
+
+path=r"filepath of files with long,lat as filename"
+
+def getim_list(path):
+    return[os.path.join(path,f) for f in os.listdir(path) if f.endswith('.jpg')]
+
+files=getim_list(path)
+
+
+d = []
+
+
+#Extracts the longitude and latitude from the filename
+for i in range(0, len(files)):
+        filename=os.path.basename(files[i])
+        nam=os.path.splitext(filename)[0]
+        d.append(nam.split(','))
+                                  
+coord=pd.DataFrame(d, columns=('lat', 'lon'))
+
+
+
+
+coord.to_csv('outputpath\\coords.csv')
+
