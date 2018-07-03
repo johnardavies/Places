@@ -1,0 +1,123 @@
+
+library(ggplot2)
+library(ggmap)
+library(rgdal)
+library(maptools)
+library(plyr)
+library('sqldf')
+library(geojsonio)
+
+
+#######################################################################################################################################
+#Reads in photos data 
+
+#filepath to the database
+dbfile<-"filepath\\Liverpoolanalysis080618 - Copy.db"
+
+# Instantiate the dbDriver to a convenient object
+sqlite = dbDriver("SQLite");
+
+# Assign the connection string to a connection object
+mydb = dbConnect(sqlite, dbfile);
+
+#Lists the tables associated with the database
+dbListTables(mydb)
+
+#Reads in the table as a data frame, calls it p1
+
+pointsdat = dbGetQuery(mydb,  '  select * FROM Liverpoolstreetdedup '  )
+
+pointsdat$georgprob<-as.numeric(as.character(pointsdat$georgprob))
+
+#Subsets points that have more than a certain probability of being georgian
+
+pointsgeo<-subset(pointsdat, pointsdat$georgprob>0)
+
+#Converts for ggplot
+#pointsgeo@data$id = rownames(pointsgeo@data)
+#pointsgeo.points = fortify(pointsgeo, region="id")
+#pointsgeo.df = join(pointsgeo.points, pointsgeo@data, by="id")
+
+
+
+####################################################################################################################################
+#Reads in the unitary authority data
+Unitary<-readOGR("filepath","Counties_and_Unitary_Authorities_December_2016_Super_Generalised_Clipped_Boundaries_in_England_and_Wales")
+
+#Unitary authorities of England are local authorities that are responsible for the provision of all local government services within a district. 
+
+Unitary<-spTransform(Unitary, CRS("+proj=longlat +datum=WGS84"))
+
+#Subsets it so we only have the boundary of Liverpool
+
+Liverpool<-subset(Unitary, Unitary@data$ctyua16nm=="Liverpool")
+
+#Transforms the projection
+Liverpool<-spTransform(Liverpool, CRS("+proj=longlat +datum=WGS84"))
+
+#Transforms the Liverpool shape file into a dataframe###########################################################################################
+Liverpool@data$id = rownames(Liverpool@data)
+Liverpool.points = fortify(Liverpool, region="id")
+Liverpool.df = join(Liverpool.points, Liverpool@data, by="id")
+
+
+#Liverpool <- fortify(Liverpool)
+
+#Reads in the listed liverpool data
+listedliverpool<-readOGR("filepath", "listedliverpool")
+
+proj4string(listedliverpool)<-CRS("+proj=longlat +datum=WGS84")
+
+#Transforms the data so that it can be used in ggplot2
+listedliverpool@data$id = rownames(listedliverpool@data)
+listedliverpool.points = fortify(listedliverpool, region="id")
+listedliverpool.df = join(listedliverpool.points, listedliverpool@data, by="id")
+
+
+##############################################################################################################
+#Read in the livepool wards data
+livward<-readOGR("filepath","Liverpoolwards")
+
+livward<-spTransform(livward, CRS("+proj=longlat +datum=WGS84"))
+
+proj4string(livward)<-CRS("+proj=longlat +datum=WGS84")
+
+#Transforms the data so that it can be used in ggplot2
+livward@data$id = rownames(livward@data)
+livward.points = fortify(livward, region="id")
+livward.df = join(livward.points, livward@data, by="id")
+
+###############################################################################################################
+# Plots the geographic distribution of the photographs
+gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = pointsgeo, aes(x = lon, y = lat, color='white'), size=0.3)+coord_map()
+
+#Plots the photos data and the listed buildings data
+#subsets the data for probability > 0.8
+pointsgeo<-subset(pointsdat, pointsdat$georgprob>=0.8)
+
+gg <- ggplot()
+
+plot1<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = pointsgeo, aes(x = lon, y = lat, color=georgprob), size=1)+ scale_colour_gradient(low = "blue")+coord_map()
+plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = listedliverpool.df, aes(x = long, y = lat, color='white'), size=0.3)+coord_map()
+
+#Creates a joint plot
+require(gridExtra)
+#Plots the two side by side
+grid.arrange(plot1, plot2, ncol=2)
+
+##########################################################################################################
+#Plots the density distribution of the photographs and listed buildings
+
+pointsgeo<-subset(pointsdat, pointsdat$georgprob>0.8)
+
+
+plot1<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+coord_map()+stat_density2d(data=pointsgeo, mapping=aes(x=lon, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of streetview images \n with >0.8 of being Georgian")  
+plot1<-plot1+ theme(plot.title = element_text(color="black", size=12, face="bold.italic"))
+plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+coord_map()+stat_density2d(data=listedliverpool, mapping=aes(x=long, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of listed buildings") 
+plot2<-plot2+ theme(plot.title = element_text(color="black", size=12, face="bold.italic"))
+
+
+#Creates a joint plot
+require(gridExtra)
+#Plots the two side by side
+######################################
