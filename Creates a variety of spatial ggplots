@@ -1,4 +1,4 @@
-
+#Includes the relevant libraries
 library(ggplot2)
 library(ggmap)
 library(rgdal)
@@ -7,8 +7,7 @@ library(plyr)
 library('sqldf')
 library(geojsonio)
 
-
-#######################################################################################################################################
+####################################################################################################################
 #Reads in photos data 
 
 #filepath to the database
@@ -24,25 +23,16 @@ mydb = dbConnect(sqlite, dbfile);
 dbListTables(mydb)
 
 #Reads in the table as a data frame, calls it p1
+pointsdat = dbGetQuery(mydb,  '  select * FROM Liverpoolstreetdedup20718'  )
 
-pointsdat = dbGetQuery(mydb,  '  select * FROM Liverpoolstreetdedup '  )
-
-pointsdat$georgprob<-as.numeric(as.character(pointsdat$georgprob))
-
-#Subsets points that have more than a certain probability of being georgian
-
-pointsgeo<-subset(pointsdat, pointsdat$georgprob>0)
-
-#Converts for ggplot
-#pointsgeo@data$id = rownames(pointsgeo@data)
-#pointsgeo.points = fortify(pointsgeo, region="id")
-#pointsgeo.df = join(pointsgeo.points, pointsgeo@data, by="id")
+#Makes sure the type is numeric
+pointsdat$georgprob<-as.numeric(as.character(pointsdat$georgprob500))
 
 
-
-####################################################################################################################################
+#####################################################################################################################
 #Reads in the unitary authority data
-Unitary<-readOGR("filepath","Counties_and_Unitary_Authorities_December_2016_Super_Generalised_Clipped_Boundaries_in_England_and_Wales")
+
+Unitary<-readOGR("filepath\Unitary Authority","Counties_and_Unitary_Authorities_December_2016_Super_Generalised_Clipped_Boundaries_in_England_and_Wales")
 
 #Unitary authorities of England are local authorities that are responsible for the provision of all local government services within a district. 
 
@@ -55,69 +45,103 @@ Liverpool<-subset(Unitary, Unitary@data$ctyua16nm=="Liverpool")
 #Transforms the projection
 Liverpool<-spTransform(Liverpool, CRS("+proj=longlat +datum=WGS84"))
 
-#Transforms the Liverpool shape file into a dataframe###########################################################################################
+#Transforms the Liverpool shape file into a dataframe################################################################
 Liverpool@data$id = rownames(Liverpool@data)
 Liverpool.points = fortify(Liverpool, region="id")
 Liverpool.df = join(Liverpool.points, Liverpool@data, by="id")
 
-
-#Liverpool <- fortify(Liverpool)
-
+######################################################################################################################
 #Reads in the listed liverpool data
 listedliverpool<-readOGR("filepath", "listedliverpool")
 
-proj4string(listedliverpool)<-CRS("+proj=longlat +datum=WGS84")
+listedliverpooldata<-read.csv("filepath\\Liverpoolisted.csv", head=TRUE)
+
+listedliverpool<-spTransform(listedliverpool, CRS("+proj=longlat +datum=WGS84"))
+
+listedgoergid<-subset(listedliverpooldata, listedliverpooldata$Flag==1)
+
+#Reads in the time period data
+georgianliverpool = read.table("filepath\georgiantested.txt", 
+                              sep="\t", 
+                              col.names=c("listid"), 
+                              fill=FALSE, 
+                              strip.white=TRUE)
+
+victorianliverpool = read.table("filepath\\tested.txt", 
+                               sep="\t", 
+                               col.names=c("listid"), 
+                               fill=FALSE, 
+                               strip.white=TRUE)
+
+#Creates flags according to time period
+listedliverpool@data$period<-ifelse(listedliverpool@data$ListEntry  %in% georgianliverpool$listid, "Built in Georgian period" ,"Other" )                                  
+listedliverpool@data$period<-ifelse(listedliverpool@data$ListEntry  %in% victorianliverpool$listid,"Built in Victorian period" ,listedliverpool@data$period )
+
+#Selects only those built in the Georgian and Victorian periods
+listedliverpool<-subset(listedliverpool, listedliverpool@data$period=="Built in Victorian period"|listedliverpool@data$period=="Built in Georgian period")
 
 #Transforms the data so that it can be used in ggplot2
 listedliverpool@data$id = rownames(listedliverpool@data)
 listedliverpool.points = fortify(listedliverpool, region="id")
 listedliverpool.df = join(listedliverpool.points, listedliverpool@data, by="id")
 
+georgianbuild<-subset(listedliverpool.df, listedliverpool.df$period=="Built in Georgian period")
+georgianandvictbuild<-subset(listedliverpool.df, listedliverpool.df$period=="Built in Victorian period"|listedliverpool.df$period=="Built in Georgian period")
+###############################################################################################################
+#Reads in the Georgian quarter
 
-##############################################################################################################
+georgquart<-readOGR("filepath\\georgianquart", "POLYGON")
+
+proj4string(georgquart) <- CRS("+proj=longlat +datum=WGS84")
+
+georgquart@data$id = rownames(georgquart@data)
+georgquart.points = fortify(georgquart, region="FID")
+georgquart.df = join(georgquart.points, georgquart@data, by="id")
+
+###############################################################################################################
 #Read in the livepool wards data
 livward<-readOGR("filepath","Liverpoolwards")
-
+#Transforms the projection
 livward<-spTransform(livward, CRS("+proj=longlat +datum=WGS84"))
 
-proj4string(livward)<-CRS("+proj=longlat +datum=WGS84")
 
 #Transforms the data so that it can be used in ggplot2
 livward@data$id = rownames(livward@data)
 livward.points = fortify(livward, region="id")
 livward.df = join(livward.points, livward@data, by="id")
 
-###############################################################################################################
+################################################################################################################
+# Plots 
+################################################################################################################
 # Plots the geographic distribution of the photographs
-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = pointsgeo, aes(x = lon, y = lat, color='white'), size=0.3)+coord_map()
+#fill gives color of the polygon, colour gives the color of the border, alpha is the transparency
+gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1, fill='#99d8c9')+geom_point(data = pointsgeo, aes(x = lon, y = lat), size=0.01, colour='brown', alpha = 0.5)+coord_map()+ theme(legend.position="none")+theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
 
-#Plots the photos data and the listed buildings data
-#subsets the data for probability > 0.8
-pointsgeo<-subset(pointsdat, pointsdat$georgprob>=0.8)
+#################################################################################################################
+#Plots the geographic distribution of the 
+pointsgeo<-subset(pointsdat, pointsdat$georgprob>0.95)
 
 gg <- ggplot()
 
 plot1<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = pointsgeo, aes(x = lon, y = lat, color=georgprob), size=1)+ scale_colour_gradient(low = "blue")+coord_map()
-plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = listedliverpool.df, aes(x = long, y = lat, color='white'), size=0.3)+coord_map()
+plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+geom_point(data = listedliverpool.df, aes(x = long, y = lat, color=period), size=0.3)+coord_map()+theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+
 
 #Creates a joint plot
 require(gridExtra)
 #Plots the two side by side
 grid.arrange(plot1, plot2, ncol=2)
 
-##########################################################################################################
+##############################################################################################################
 #Plots the density distribution of the photographs and listed buildings
 
-pointsgeo<-subset(pointsdat, pointsdat$georgprob>0.8)
-
-
-plot1<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+coord_map()+stat_density2d(data=pointsgeo, mapping=aes(x=lon, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of streetview images \n with >0.8 of being Georgian")  
+plot1<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1,  fill=NA)+coord_map()+ggtitle("Distribution of streetview images \n with probability >0.95 of being Georgian style")+stat_density2d(data=pointsgeo, mapping=aes(x=lon, y=lat, fill=..level..), geom="polygon", alpha=0.3)+geom_polygon(data = georgquart.df, aes(x = long, y = lat),color = 'white', size = .1, fill=NA)+ theme(legend.position="none")+theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
 plot1<-plot1+ theme(plot.title = element_text(color="black", size=12, face="bold.italic"))
-plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1)+coord_map()+stat_density2d(data=listedliverpool, mapping=aes(x=long, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of listed buildings") 
+plot2<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1,  fill=NA)+coord_map()+stat_density2d(data=georgianbuild, mapping=aes(x=long, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of buildings built in Georgian period only")+geom_polygon(data = georgquart.df, aes(x = long, y = lat),color = 'white', size = .1, fill=NA)+ theme(legend.position="none")+theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
 plot2<-plot2+ theme(plot.title = element_text(color="black", size=12, face="bold.italic"))
-
+plot3<-gg+geom_polygon(data = Liverpool.df, aes(x = long, y = lat),color = 'black', size = .1,  fill=NA)+coord_map()+stat_density2d(data=georgianandvictbuild , mapping=aes(x=long, y=lat, fill=..level..), geom="polygon", alpha=0.3)+ggtitle("Distribution of buildings built in Georgian and Victorian period")+geom_polygon(data = georgquart.df, aes(x = long, y = lat),color = 'white', size = .1, fill=NA)+theme(legend.position="none")+theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+plot3<-plot3+ theme(plot.title = element_text(color="black", size=12, face="bold.italic"))
 
 #Creates a joint plot
 require(gridExtra)
-#Plots the two side by side
-######################################
+grid.arrange(plot1, plot2, plot3, ncol=3)
