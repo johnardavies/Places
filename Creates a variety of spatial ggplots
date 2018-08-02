@@ -22,7 +22,7 @@ mydb = dbConnect(sqlite, dbfile);
 #Lists the tables associated with the database
 dbListTables(mydb)
 
-#Reads in the table as a data frame, calls it p1
+#Reads in the table as a data frame, calls it pointsdat
 pointsdat = dbGetQuery(mydb,  '  select * FROM Liverpoolstreetdedup20718'  )
 
 #Makes sure the type is numeric
