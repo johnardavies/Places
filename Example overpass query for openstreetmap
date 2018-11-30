@@ -34,7 +34,9 @@ in GB
 
 */
 
-
+/*
+Query for all the cinemas in the UK
+*/
 
 [out:json];{{geocodeArea:Britain}}->.searchArea;
 (
@@ -52,3 +54,15 @@ relation[shop=gallery](area.searchArea);>;
 )
 
 ;out;
+
+
+[out:json];{{geocodeArea:UK}}->.searchArea;
+(
+node["amenity"="cinema"](area.searchArea);
+way["amenity"="cinema"](area.searchArea);
+  relation["amenity"="cinema"](area.searchArea);
+);
+out body;
+>;
+out skel qt;
+
