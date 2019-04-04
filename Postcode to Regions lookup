@@ -1,0 +1,11 @@
+The Office for National Statistics makes available a postcode lookup file available at the link below:
+http://geoportal.statistics.gov.uk/items/nhs-postcode-directory-uk-full-august-2018  
+
+If you download the folder, then the folders -> Documents -> Names and Codes  has a spreadsheet giving the code for each region.
+
+ 'Region names and codes EN as at 12_10 (GOR).csv'
+
+In the Data folder  nhg18aug.csv gives you a lookup for the entire country with the first column being the postcode and column O 
+being the corresponding region (as specified by the regional codes in 
+
+ 'Region names and codes EN as at 12_10 (GOR).csv')
