@@ -9,7 +9,7 @@ library(ggmap)
 infile <- 'accreditedmus5'
 data <- read.csv(paste0('filepath Culture project\\', infile, '.csv'), header=T)
 
-# get the address list, and append "Ireland" to the end to increase accuracy 
+# get the address list, and append "UK" to the end to increase accuracy 
 # (change or remove this if your address already include a country etc.)
  #Creates the variable that is going to be looped through
 addresses= paste(data$name,data$Region, sep=" ,")
